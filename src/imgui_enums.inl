@@ -795,10 +795,7 @@ nb::enum_<ImGuiBackendFlags_>(m, "BackendFlags", nb::is_flag(),
         "Backend Renderer supports ImDrawCmd::VtxOffset. This enables output "
         "of large meshes (64K+ vertices) while still using 16-bit indices.")
     .value("RENDERER_HAS_TEXTURES", ImGuiBackendFlags_RendererHasTextures,
-           "Backend Renderer supports ImTextureData requests to "
-           "create/update/destroy textures. This enables incremental texture "
-           "updates and texture reloads. See "
-           "https://github.com/ocornut/imgui/blob/master/docs/BACKENDS.md for "
+           "Github.com/ocornut/imgui/blob/master/docs/BACKENDS.md for "
            "instructions on how to upgrade your custom backend.");
 nb::enum_<ImGuiCond_>(m, "Cond", nb::is_arithmetic())
     .value("NONE", ImGuiCond_None,
@@ -1049,7 +1046,8 @@ nb::enum_<ImGuiCol_>(m, "Col", nb::is_arithmetic())
            "Tab background, when tab-bar is unfocused & tab is unselected")
     .value("TAB_DIMMED_SELECTED", ImGuiCol_TabDimmedSelected,
            "Tab background, when tab-bar is unfocused & tab is selected")
-    .value("TAB_DIMMED_SELECTED_OVERLINE", ImGuiCol_TabDimmedSelectedOverline)
+    .value("TAB_DIMMED_SELECTED_OVERLINE", ImGuiCol_TabDimmedSelectedOverline,
+           "..horizontal overline, when tab-bar is unfocused & tab is selected")
     .value("PLOT_LINES", ImGuiCol_PlotLines)
     .value("PLOT_LINES_HOVERED", ImGuiCol_PlotLinesHovered)
     .value("PLOT_HISTOGRAM", ImGuiCol_PlotHistogram)

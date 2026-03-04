@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterator, Sequence
 import enum
-from typing import Annotated, overload, Any
+from typing import Annotated, Optional, Union, overload, Any
 
 import numpy
 from numpy.typing import NDArray
@@ -132,9 +132,9 @@ class FontConfig:
     def ellipsis_char(self, arg: int, /) -> None: ...
 
 class FontAtlas:
-    def add_font_default(self, font_cfg: FontConfig | None = None) -> Font: ...
+    def add_font_default(self, font_cfg: Optional[FontConfig] = None) -> Font: ...
 
-    def add_font_from_memory_ttf(self, font_data: bytes, size_pixels: float = 0.0, font_cfg: FontConfig | None = None) -> Font: ...
+    def add_font_from_memory_ttf(self, font_data: bytes, size_pixels: float = 0.0, font_cfg: Optional[FontConfig] = None) -> Font: ...
 
     def clear_tex_data(self) -> None: ...
 
@@ -600,16 +600,16 @@ class IO:
     def ini_saving_rate(self, arg: float, /) -> None: ...
 
     @property
-    def ini_filename(self, /) -> str | None: ...
+    def ini_filename(self, /) -> Optional[str]: ...
 
     @ini_filename.setter
-    def ini_filename(self, filename: str | None, /) -> None: ...
+    def ini_filename(self, filename: Optional[str], /) -> None: ...
 
     @property
-    def log_filename(self, /) -> str | None: ...
+    def log_filename(self, /) -> Optional[str]: ...
 
     @log_filename.setter
-    def log_filename(self, filename: str | None, /) -> None: ...
+    def log_filename(self, filename: Optional[str], /) -> None: ...
 
     @property
     def fonts(self) -> FontAtlas: ...
@@ -1045,7 +1045,7 @@ class DrawList:
 
     def pop_clip_rect(self) -> None: ...
 
-    def push_texture(self, tex_ref: TextureRef | int) -> None: ...
+    def push_texture(self, tex_ref: Union[TextureRef, int]) -> None: ...
 
     def pop_texture(self) -> None: ...
 
@@ -1085,7 +1085,7 @@ class DrawList:
     def add_text(self, pos: tuple[float, float], col: int, text: str) -> None: ...
 
     @overload
-    def add_text(self, font: Font, font_size: float, pos: tuple[float, float], col: int, text: str, wrap_width: float = 0.0, cpu_fine_clip_rect: tuple[float, float, float, float] | None = None) -> None: ...
+    def add_text(self, font: Font, font_size: float, pos: tuple[float, float], col: int, text: str, wrap_width: float = 0.0, cpu_fine_clip_rect: Optional[tuple[float, float, float, float]] = None) -> None: ...
 
     def add_bezier_cubic(self, p1: tuple[float, float], p2: tuple[float, float], p3: tuple[float, float], p4: tuple[float, float], col: int, thickness: float, num_segments: int = 0) -> None: ...
 
@@ -1109,11 +1109,11 @@ class DrawList:
     @overload
     def add_concave_poly_filled(self, points: Annotated[NDArray[Any], dict(shape=(None, 2), device='cpu', writable=False)], col: int) -> None: ...
 
-    def add_image(self, tex_ref: TextureRef | int, p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float] = (0.0, 0.0), uv_max: tuple[float, float] = (1.0, 1.0), col: int = COL32_WHITE) -> None: ...
+    def add_image(self, tex_ref: Union[TextureRef, int], p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float] = (0.0, 0.0), uv_max: tuple[float, float] = (1.0, 1.0), col: int = COL32_WHITE) -> None: ...
 
-    def add_image_quad(self, tex_ref: TextureRef | int, p1: tuple[float, float], p2: tuple[float, float], p3: tuple[float, float], p4: tuple[float, float], uv1: tuple[float, float] = (0.0, 0.0), uv2: tuple[float, float] = (1.0, 0.0), uv3: tuple[float, float] = (1.0, 1.0), uv4: tuple[float, float] = (0.0, 1.0), col: int = COL32_WHITE) -> None: ...
+    def add_image_quad(self, tex_ref: Union[TextureRef, int], p1: tuple[float, float], p2: tuple[float, float], p3: tuple[float, float], p4: tuple[float, float], uv1: tuple[float, float] = (0.0, 0.0), uv2: tuple[float, float] = (1.0, 0.0), uv3: tuple[float, float] = (1.0, 1.0), uv4: tuple[float, float] = (0.0, 1.0), col: int = COL32_WHITE) -> None: ...
 
-    def add_image_rounded(self, tex_ref: TextureRef | int, p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float], uv_max: tuple[float, float], col: int, rounding: float, flags: DrawFlags = DrawFlags.NONE) -> None: ...
+    def add_image_rounded(self, tex_ref: Union[TextureRef, int], p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float], uv_max: tuple[float, float], col: int, rounding: float, flags: DrawFlags = DrawFlags.NONE) -> None: ...
 
     def path_clear(self) -> None: ...
 
@@ -1150,7 +1150,7 @@ class DrawList:
 
     def channels_set_current(self, n: int) -> None: ...
 
-    def add_callback(self, callable: int | Callable[[DrawList, DrawCmd, int | bytes], None], userdata: int | bytes) -> None: ...
+    def add_callback(self, callable: Union[int, Callable[[DrawList, DrawCmd, Union[int, bytes]], None]], userdata: Union[int, bytes]) -> None: ...
 
 class DrawData:
     def scale_clip_rects(self, fb_scale: tuple[float, float]) -> None: ...
@@ -1165,7 +1165,7 @@ class DrawData:
     def commands_lists(self) -> Iterator[DrawList]: ...
 
     @property
-    def textures(self) -> Iterator[TextureData] | None: ...
+    def textures(self) -> Optional[Iterator[TextureData]]: ...
 
 class Payload:
     """
@@ -1181,11 +1181,6 @@ class Payload:
     def data(self) -> bytes: ...
 
 class DrawFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     CLOSED = 1
@@ -1229,11 +1224,6 @@ class DrawFlags(enum.IntFlag):
     ROUND_CORNERS_ALL = 240
 
 class InputTextFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     CHARS_DECIMAL = 1
@@ -1334,11 +1324,6 @@ class InputTextFlags(enum.IntFlag):
     """InputTextMultine(): word-wrap lines that are too long."""
 
 class ButtonFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     MOUSE_BUTTON_LEFT = 1
@@ -1356,11 +1341,6 @@ class ButtonFlags(enum.IntFlag):
     """
 
 class ChildFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     BORDERS = 1
@@ -1407,11 +1387,6 @@ class ChildFlags(enum.IntFlag):
     """
 
 class DragDropFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     SOURCE_NO_PREVIEW_TOOLTIP = 1
@@ -1471,11 +1446,6 @@ class DragDropFlags(enum.IntFlag):
     """For peeking ahead and inspecting the payload before delivery."""
 
 class FocusedFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     CHILD_WINDOWS = 1
@@ -1497,11 +1467,6 @@ class FocusedFlags(enum.IntFlag):
     ROOT_AND_CHILD_WINDOWS = 3
 
 class InputFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     REPEAT = 1
@@ -1551,11 +1516,6 @@ class InputFlags(enum.IntFlag):
     """
 
 class WindowFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     NO_TITLE_BAR = 1
@@ -1653,11 +1613,6 @@ class WindowFlags(enum.IntFlag):
     """Don't use! For internal use by `begin_menu()`"""
 
 class TreeNodeFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     SELECTED = 1
@@ -1749,11 +1704,6 @@ class TreeNodeFlags(enum.IntFlag):
     """
 
 class TabBarFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     REORDERABLE = 1
@@ -1795,11 +1745,6 @@ class TabBarFlags(enum.IntFlag):
     """Enable scrolling buttons when tabs don't fit"""
 
 class TabItemFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     UNSAVED_DOCUMENT = 1
@@ -1844,11 +1789,6 @@ class TabItemFlags(enum.IntFlag):
     """
 
 class TableFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     RESIZABLE = 1
@@ -2003,11 +1943,6 @@ class TableFlags(enum.IntFlag):
     """
 
 class TableRowFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     HEADERS = 1
@@ -2016,11 +1951,6 @@ class TableRowFlags(enum.IntFlag):
     """
 
 class TableColumnFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     DISABLED = 1
@@ -2117,11 +2047,6 @@ class TableColumnFlags(enum.IntFlag):
     """Status: is hovered by mouse"""
 
 class ColorEditFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     NO_ALPHA = 2
@@ -2225,11 +2150,6 @@ class ColorEditFlags(enum.IntFlag):
     """ColorEdit, ColorPicker: input and output data in HSV format."""
 
 class ComboFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     POPUP_ALIGN_LEFT = 1
@@ -2259,11 +2179,6 @@ class ComboFlags(enum.IntFlag):
     """Width dynamically calculated from preview contents"""
 
 class SelectableFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     NO_AUTO_CLOSE_POPUPS = 1
@@ -2294,11 +2209,6 @@ class SelectableFlags(enum.IntFlag):
     """
 
 class ConfigFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     NAV_ENABLE_KEYBOARD = 1
@@ -2331,11 +2241,6 @@ class ConfigFlags(enum.IntFlag):
     """Application is using a touch screen instead of a mouse."""
 
 class BackendFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     HAS_GAMEPAD = 1
@@ -2358,7 +2263,7 @@ class BackendFlags(enum.IntFlag):
 
     RENDERER_HAS_TEXTURES = 16
     """
-    Backend Renderer supports ImTextureData requests to create/update/destroy textures. This enables incremental texture updates and texture reloads. See https://github.com/ocornut/imgui/blob/master/docs/BACKENDS.md for instructions on how to upgrade your custom backend.
+    Github.com/ocornut/imgui/blob/master/docs/BACKENDS.md for instructions on how to upgrade your custom backend.
     """
 
 class Cond(enum.IntEnum):
@@ -2384,11 +2289,6 @@ class Cond(enum.IntEnum):
     """
 
 class HoveredFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """
     Return true if directly over the item/window, not obstructed by another window, not obstructed by an active popup or modal blocking inputs under them.
@@ -2477,11 +2377,6 @@ class HoveredFlags(enum.IntFlag):
     """
 
 class ItemFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """(Default)"""
 
@@ -2516,11 +2411,6 @@ class ItemFlags(enum.IntFlag):
     """
 
 class SliderFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     LOGARITHMIC = 32
@@ -2561,11 +2451,6 @@ class SliderFlags(enum.IntFlag):
     ALWAYS_CLAMP = 1536
 
 class PopupFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     MOUSE_BUTTON_LEFT = 0
@@ -2761,6 +2646,7 @@ class Col(enum.IntEnum):
     """Tab background, when tab-bar is unfocused & tab is selected"""
 
     TAB_DIMMED_SELECTED_OVERLINE = 40
+    """..horizontal overline, when tab-bar is unfocused & tab is selected"""
 
     PLOT_LINES = 41
 
@@ -3355,14 +3241,14 @@ class Context:
 
     def get_window_draw_list_internal(self) -> DrawList: ...
 
-    def accept_drag_drop_payload_internal(self, type: str, flags: DragDropFlags = DragDropFlags.NONE) -> Payload | None: ...
+    def accept_drag_drop_payload_internal(self, type: str, flags: DragDropFlags = DragDropFlags.NONE) -> Optional[Payload]: ...
 
-    def get_drag_drop_payload_internal(self) -> Payload | None: ...
+    def get_drag_drop_payload_internal(self) -> Optional[Payload]: ...
 
     def new_frame_internal(self) -> None:
         """Internal ImGui::NewFrame(), don't use directly."""
 
-def create_context_internal(shared_font_atlas: FontAtlas | None = None) -> Context:
+def create_context_internal(shared_font_atlas: Optional[FontAtlas] = None) -> Context:
     ...
 
 
@@ -3520,7 +3406,7 @@ def set_next_window_size(size: tuple[float, float], cond: Cond = Cond.NONE) -> N
     ...
 
 
-def set_next_window_size_constraints_internal(size_min: tuple[float, float], size_max: tuple[float, float], cb: Callable[[tuple[float, float], tuple[float, float], tuple[float, float], int], tuple[float, float]] | None = None, int_user_data: int = 0) -> None:
+def set_next_window_size_constraints_internal(size_min: tuple[float, float], size_max: tuple[float, float], cb: Optional[Callable[[tuple[float, float], tuple[float, float], tuple[float, float], int], tuple[float, float]]] = None, int_user_data: int = 0) -> None:
     ...
 
 
@@ -3648,7 +3534,7 @@ def set_scroll_from_pos_y(local_y: float, center_y_ratio: float = 0.5) -> None:
     ...
 
 
-def push_font(font: Font | None, font_size_base: float) -> None:
+def push_font(font: Optional[Font], font_size_base: float) -> None:
     """
     Use `None` as a shortcut to keep current font.  Use 0.0 for `font_size_base` to keep the current font size.
     """
@@ -3869,7 +3755,7 @@ def radio_button(label: str, v: int, v_button: int) -> tuple[bool, int]:
     ...
 
 
-def progress_bar(fraction: float, size_arg: tuple[float, float] = (-FLT_MIN, 0), overlay: str | None = None) -> None:
+def progress_bar(fraction: float, size_arg: tuple[float, float] = (-FLT_MIN, 0), overlay: Optional[str] = None) -> None:
     ...
 
 
@@ -3883,20 +3769,20 @@ def text_link(label: str) -> None:
     ...
 
 
-def text_link_open_url(label: str, url: str | None = None) -> None:
+def text_link_open_url(label: str, url: Optional[str] = None) -> None:
     """Hyperlink text button, automatically open file/url when clicked"""
     ...
 
 
-def image(tex_ref: TextureRef | int, image_size: tuple[float, float], uv0: tuple[float, float] = (0.0, 0.0), uv1: tuple[float, float] = (1.0, 1.0)) -> None:
+def image(tex_ref: Union[TextureRef, int], image_size: tuple[float, float], uv0: tuple[float, float] = (0.0, 0.0), uv1: tuple[float, float] = (1.0, 1.0)) -> None:
     ...
 
 
-def image_with_bg(tex_ref: TextureRef | int, image_size: tuple[float, float], uv0: tuple[float, float] = (0.0, 0.0), uv1: tuple[float, float] = (1.0, 1.0), bg_col: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0), tint_col: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)) -> None:
+def image_with_bg(tex_ref: Union[TextureRef, int], image_size: tuple[float, float], uv0: tuple[float, float] = (0.0, 0.0), uv1: tuple[float, float] = (1.0, 1.0), bg_col: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0), tint_col: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)) -> None:
     ...
 
 
-def image_button(str_id: str, tex_ref: TextureRef | int, image_size: tuple[float, float], uv0: tuple[float, float] = (0.0, 0.0), uv1: tuple[float, float] = (1.0, 1.0), bg_col: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0), tint_col: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)) -> bool:
+def image_button(str_id: str, tex_ref: Union[TextureRef, int], image_size: tuple[float, float], uv0: tuple[float, float] = (0.0, 0.0), uv1: tuple[float, float] = (1.0, 1.0), bg_col: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0), tint_col: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)) -> bool:
     ...
 
 
@@ -4058,7 +3944,7 @@ def end_menu() -> None:
     ...
 
 
-def menu_item(label: str, shortcut: str | None = None, selected: bool = False, enabled: bool = True) -> tuple[bool, bool]:
+def menu_item(label: str, shortcut: Optional[str] = None, selected: bool = False, enabled: bool = True) -> tuple[bool, bool]:
     """Return true when activated."""
     ...
 
@@ -4108,7 +3994,7 @@ def open_popup(str_id: str, flags: PopupFlags = PopupFlags.NONE) -> None:
     ...
 
 
-def open_popup_on_item_click(str_id: str | None = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> None:
+def open_popup_on_item_click(str_id: Optional[str] = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> None:
     """Helper to open popup when clicked on last item. Default to `PopupFlags.MOUSE_BUTTON_RIGHT` == 1. (note: actually triggers on the mouse _released_ event to be consistent with popup behaviors)"""
     ...
 
@@ -4118,17 +4004,17 @@ def close_current_popup() -> None:
     ...
 
 
-def begin_popup_context_item(str_id: str | None = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> bool:
+def begin_popup_context_item(str_id: Optional[str] = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> bool:
     """Open+begin popup when clicked on last item. Use str_id==NULL to associate the popup to previous item. If you want to use that on a non-interactive item such as `text()` you need to pass in an explicit ID here. read comments in .cpp!"""
     ...
 
 
-def begin_popup_context_window(str_id: str | None = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> bool:
+def begin_popup_context_window(str_id: Optional[str] = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> bool:
     """Open+begin popup when clicked on current window."""
     ...
 
 
-def begin_popup_context_void(str_id: str | None = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> bool:
+def begin_popup_context_void(str_id: Optional[str] = None, flags: PopupFlags = PopupFlags.MOUSE_BUTTON_RIGHT) -> bool:
     """Open+begin popup when clicked in void (where there are no windows)."""
     ...
 
@@ -4168,7 +4054,7 @@ def set_next_item_open(is_open: bool, cond: Cond = Cond.NONE) -> None:
     ...
 
 
-def collapsing_header(label: str, visible: bool | None = None, flags: TreeNodeFlags = TreeNodeFlags.NONE) -> tuple[bool, bool | None]:
+def collapsing_header(label: str, visible: Optional[bool] = None, flags: TreeNodeFlags = TreeNodeFlags.NONE) -> tuple[bool, Optional[bool]]:
     """If returning 'true' the header is open. doesn't indent nor push on ID stack. user doesn't have to call `tree_pop()`."""
     ...
 
@@ -4200,11 +4086,11 @@ def list_box(label: str, current_item: int, items: Sequence[str], height_in_item
     ...
 
 
-def plot_lines(label: str, values: Annotated[NDArray[Any], dict(shape=(None,), device='cpu', writable=False)], overlay_text: str | None = None, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: tuple[float, float] = (0.0, 0.0)) -> None:
+def plot_lines(label: str, values: Annotated[NDArray[Any], dict(shape=(None,), device='cpu', writable=False)], overlay_text: Optional[str] = None, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: tuple[float, float] = (0.0, 0.0)) -> None:
     ...
 
 
-def plot_histogram(label: str, values: Annotated[NDArray[Any], dict(shape=(None,), device='cpu', writable=False)], overlay_text: str | None = None, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: tuple[float, float] = (0.0, 0.0)) -> None:
+def plot_histogram(label: str, values: Annotated[NDArray[Any], dict(shape=(None,), device='cpu', writable=False)], overlay_text: Optional[str] = None, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: tuple[float, float] = (0.0, 0.0)) -> None:
     ...
 
 
@@ -4270,7 +4156,7 @@ def drag_float4(label: str, v: tuple[float, float, float, float], v_speed: float
     ...
 
 
-def drag_float_range2(label: str, v_current_min: float, v_current_max: float, v_speed: float = 1.0, v_min: float = 0.0, v_max: float = 0.0, format: str = '%.3f', format_max: str | None = None, flags: SliderFlags = SliderFlags.NONE) -> tuple[bool, float, float]:
+def drag_float_range2(label: str, v_current_min: float, v_current_max: float, v_speed: float = 1.0, v_min: float = 0.0, v_max: float = 0.0, format: str = '%.3f', format_max: Optional[str] = None, flags: SliderFlags = SliderFlags.NONE) -> tuple[bool, float, float]:
     ...
 
 
@@ -4291,7 +4177,7 @@ def drag_int4(label: str, v: tuple[int, int, int, int], v_speed: float = 1.0, v_
     ...
 
 
-def drag_int_range2(label: str, v_current_min: int, v_current_max: int, v_speed: float = 1.0, v_min: int = 0, v_max: int = 0, format: str = '%d', format_max: str | None = None, flags: SliderFlags = SliderFlags.NONE) -> tuple[bool, int, int]:
+def drag_int_range2(label: str, v_current_min: int, v_current_max: int, v_speed: float = 1.0, v_min: int = 0, v_max: int = 0, format: str = '%d', format_max: Optional[str] = None, flags: SliderFlags = SliderFlags.NONE) -> tuple[bool, int, int]:
     ...
 
 
@@ -4355,7 +4241,7 @@ def color_picker3(label: str, col: tuple[float, float, float], flags: ColorEditF
     ...
 
 
-def color_picker4(label: str, col: tuple[float, float, float, float], flags: ColorEditFlags = ColorEditFlags.NONE, ref_col: tuple[float, float, float, float] | None = None) -> tuple[bool, tuple[float, float, float, float]]:
+def color_picker4(label: str, col: tuple[float, float, float, float], flags: ColorEditFlags = ColorEditFlags.NONE, ref_col: Optional[tuple[float, float, float, float]] = None) -> tuple[bool, tuple[float, float, float, float]]:
     ...
 
 
@@ -4457,7 +4343,7 @@ def table_set_bg_color(target: TableBgTarget, color: tuple[float, float, float, 
     ...
 
 
-def columns(count: int = 1, id: str | None = None, border: bool = True) -> None:
+def columns(count: int = 1, id: Optional[str] = None, border: bool = True) -> None:
     ...
 
 
@@ -4530,7 +4416,7 @@ def log_to_tty(auto_open_depth: int = -1) -> None:
     ...
 
 
-def log_to_file(auto_open_depth: int = -1, filename: str | None = None) -> None:
+def log_to_file(auto_open_depth: int = -1, filename: Optional[str] = None) -> None:
     """Start logging to file"""
     ...
 
@@ -4762,7 +4648,7 @@ def is_key_released(key: Key) -> bool:
     ...
 
 
-def is_key_chord_pressed(key_chord: Key | int) -> bool:
+def is_key_chord_pressed(key_chord: Union[Key, int]) -> bool:
     """Was key chord (mods + key) pressed, e.g. you can pass 'ImGuiMod_Ctrl | ImGuiKey_S' as a key-chord. This doesn't do any routing or focus check, please consider using `shortcut()` function instead."""
     ...
 
@@ -4781,12 +4667,12 @@ def set_next_frame_want_capture_keyboard(want_capture_keyboard: bool) -> None:
     ...
 
 
-def shortcut(key_chord: Key | int, flags: InputFlags = InputFlags.NONE) -> bool:
+def shortcut(key_chord: Union[Key, int], flags: InputFlags = InputFlags.NONE) -> bool:
     """
     Python bindings note: The original ImGui type for a ImGuiKeyChord is basically ImGuiKey that can be optionally bitwise-OR'd with a modifier key like ImGuiMod_Alt, ImGuiMod_Ctrl, etc.  In Python, this is modeled as a union of `Key` and int.  The int value is the modifier key.  You can use the `|` operator to combine them, e.g. `Key.A | Key.MOD_CTRL`.
     """
 
-def set_next_item_shortcut(key_chord: Key | int, flags: InputFlags = InputFlags.NONE) -> None:
+def set_next_item_shortcut(key_chord: Union[Key, int], flags: InputFlags = InputFlags.NONE) -> None:
     """
     Python bindings note: The original ImGui type for a ImGuiKeyChord is basically ImGuiKey that can be optionally bitwise-OR'd with a modifier key like ImGuiMod_Alt, ImGuiMod_Ctrl, etc.  In Python, this is modeled as a union of `Key` and int.  The int value is the modifier key.  You can use the `|` operator to combine them, e.g. `Key.A | Key.MOD_CTRL`.
     """
@@ -4829,7 +4715,7 @@ def is_mouse_hovering_rect(r_min: tuple[float, float], r_max: tuple[float, float
     ...
 
 
-def is_mouse_pos_valid(mouse_pos: tuple[float, float] | None = None) -> bool:
+def is_mouse_pos_valid(mouse_pos: Optional[tuple[float, float]] = None) -> bool:
     """By convention we use (-FLT_MAX,-FLT_MAX) to denote that there is no mouse available"""
     ...
 

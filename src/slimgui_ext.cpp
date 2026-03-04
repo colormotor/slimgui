@@ -371,8 +371,8 @@ NB_MODULE(slimgui_ext, top) {
                 io.IniFilename = fname;
             },
             "ini_filename"_a.none(),
-            nb::for_getter(nb::sig("def ini_filename(self, /) -> str | None")),
-            nb::for_setter(nb::sig("def ini_filename(self, filename: str | None, /) -> None"))
+            nb::for_getter(nb::sig("def ini_filename(self, /) -> Optional[str]")),
+            nb::for_setter(nb::sig("def ini_filename(self, filename: Optional[str], /) -> None"))
         )
         .def_prop_rw("log_filename",
             [](ImGuiIO& io) { return io.LogFilename; },
@@ -381,8 +381,8 @@ NB_MODULE(slimgui_ext, top) {
                 io.LogFilename = fname;
             },
             "log_filename"_a.none(),
-            nb::for_getter(nb::sig("def log_filename(self, /) -> str | None")),
-            nb::for_setter(nb::sig("def log_filename(self, filename: str | None, /) -> None"))
+            nb::for_getter(nb::sig("def log_filename(self, /) -> Optional[str]")),
+            nb::for_setter(nb::sig("def log_filename(self, filename: Optional[str], /) -> None"))
         )
         .def_rw("fonts", &ImGuiIO::Fonts, nb::rv_policy::reference_internal)
 

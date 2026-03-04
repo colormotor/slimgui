@@ -1,3 +1,4 @@
+import typing
 from typing import Any, Callable
 
 import glfw
@@ -11,12 +12,12 @@ class GlfwRenderer:
         window,
         attach_callbacks: bool = True,
         mouse_wheel_multiplier: float = 1.0,
-        prev_key_callback: None | Callable[[Any, int, int, int, int], None] = None,
-        prev_char_callback: Callable[[Any, int], None] | None = None,
-        prev_cursor_pos_callback: Callable[[Any, float, float], None] | None = None,
-        prev_mouse_button_callback: Callable[[Any, int, int, int], None] | None = None,
-        prev_scroll_callback: Callable[[Any, float, float], None] | None = None,
-        prev_window_focus_callback: Callable[[Any, int], None] | None = None,
+        prev_key_callback: typing.Optional[Callable[[Any, int, int, int, int], None]] = None,
+        prev_char_callback: typing.Optional[Callable[[Any, int], None]] = None,
+        prev_cursor_pos_callback: typing.Optional[Callable[[Any, float, float], None]] = None,
+        prev_mouse_button_callback: typing.Optional[Callable[[Any, int, int, int], None]] = None,
+        prev_scroll_callback: typing.Optional[Callable[[Any, float, float], None]] = None,
+        prev_window_focus_callback: typing.Optional[Callable[[Any, int], None]] = None,
     ):
         self.renderer = OpenGLRenderer()
         self.window = window
@@ -92,7 +93,7 @@ class GlfwRenderer:
         self.io.add_key_event(imgui.Key.MOD_SUPER, glfw.get_key(window, glfw.KEY_LEFT_SUPER) == glfw.PRESS or glfw.get_key(window, glfw.KEY_RIGHT_SUPER) == glfw.PRESS)
         # fmt: on
 
-    def _map_key(self, glfw_key: int) -> imgui.Key | None:
+    def _map_key(self, glfw_key: int) -> typing.Optional[imgui.Key]:
         from slimgui.imgui import Key
 
         if glfw_key >= glfw.KEY_A and glfw_key <= glfw.KEY_Z:

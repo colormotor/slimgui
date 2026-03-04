@@ -1,4 +1,5 @@
 from __future__ import annotations
+import typing
 
 '''
 See https://nurpax.github.io/slimgui/ for documentation.
@@ -8,6 +9,8 @@ from typing import TYPE_CHECKING, Annotated, Callable, Iterator, Sequence, cast,
 from ..slimgui_ext import imgui as imgui_ext
 
 from ..slimgui_ext.imgui import *
+
+from typing import Optional
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -64,7 +67,7 @@ class DrawList:
     def _clear_callback_refs(self):
         self._callback_refs.clear()
 
-    def add_callback(self, callable: int | Callable[[imgui_ext.DrawList, imgui_ext.DrawCmd, int | bytes], None], userdata: int | bytes) -> None:
+    def add_callback(self, callable: typing.Union[(int, Callable[[imgui_ext.DrawList, imgui_ext.DrawCmd, int | bytes], None])], userdata: typing.Union[(int, bytes)]) -> None:
         """
         May be used to alter render state (change sampler, blending, current shader). May be used to emit custom rendering commands (difficult to do correctly, but possible).
 
@@ -106,7 +109,7 @@ class DrawList:
     def pop_clip_rect(self) -> None:
         self._dl.pop_clip_rect()
 
-    def push_texture(self, tex_ref: imgui_ext.TextureRef | int) -> None:
+    def push_texture(self, tex_ref: typing.Union[(imgui_ext.TextureRef, int)]) -> None:
         self._dl.push_texture(tex_ref)
 
     def pop_texture(self) -> None:
@@ -164,7 +167,7 @@ class DrawList:
     def add_text(self, pos: tuple[float, float], col: int, text: str) -> None: ...
 
     @overload
-    def add_text(self, font: imgui_ext.Font, font_size: float, pos: tuple[float, float], col: int, text: str, wrap_width: float = 0.0, cpu_fine_clip_rect: tuple[float, float, float, float] | None = None) -> None: ...
+    def add_text(self, font: imgui_ext.Font, font_size: float, pos: tuple[float, float], col: int, text: str, wrap_width: float = 0.0, cpu_fine_clip_rect: typing.Optional[tuple[float, float, float, float]] = None) -> None: ...
 
     def add_text(self, *args, **kwargs) -> None:
         if len(args) == 3:
@@ -206,13 +209,13 @@ class DrawList:
     def add_concave_poly_filled(self, points, col: int) -> None:
         self._dl.add_concave_poly_filled(points, col)
 
-    def add_image(self, tex_ref: imgui_ext.TextureRef | int, p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float] = (0.0, 0.0), uv_max: tuple[float, float] = (1.0, 1.0), col: int = imgui_ext.COL32_WHITE) -> None:
+    def add_image(self, tex_ref: typing.Union[(imgui_ext.TextureRef, int)], p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float] = (0.0, 0.0), uv_max: tuple[float, float] = (1.0, 1.0), col: int = imgui_ext.COL32_WHITE) -> None:
         self._dl.add_image(tex_ref, p_min, p_max, uv_min, uv_max, col)
 
-    def add_image_quad(self, tex_ref: imgui_ext.TextureRef | int, p1: tuple[float, float], p2: tuple[float, float], p3: tuple[float, float], p4: tuple[float, float], uv1: tuple[float, float] = (0.0, 0.0), uv2: tuple[float, float] = (1.0, 0.0), uv3: tuple[float, float] = (1.0, 1.0), uv4: tuple[float, float] = (0.0, 1.0), col: int = imgui_ext.COL32_WHITE) -> None:
+    def add_image_quad(self, tex_ref: typing.Union[(imgui_ext.TextureRef, int)], p1: tuple[float, float], p2: tuple[float, float], p3: tuple[float, float], p4: tuple[float, float], uv1: tuple[float, float] = (0.0, 0.0), uv2: tuple[float, float] = (1.0, 0.0), uv3: tuple[float, float] = (1.0, 1.0), uv4: tuple[float, float] = (0.0, 1.0), col: int = imgui_ext.COL32_WHITE) -> None:
         self._dl.add_image_quad(tex_ref, p1, p2, p3, p4, uv1, uv2, uv3, uv4, col)
 
-    def add_image_rounded(self, tex_ref: imgui_ext.TextureRef | int, p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float], uv_max: tuple[float, float], col: int, rounding: float, flags: imgui_ext.DrawFlags = imgui_ext.DrawFlags.NONE) -> None:
+    def add_image_rounded(self, tex_ref: typing.Union[(imgui_ext.TextureRef, int)], p_min: tuple[float, float], p_max: tuple[float, float], uv_min: tuple[float, float], uv_max: tuple[float, float], col: int, rounding: float, flags: imgui_ext.DrawFlags = imgui_ext.DrawFlags.NONE) -> None:
         self._dl.add_image_rounded(tex_ref, p_min, p_max, uv_min, uv_max, col, rounding, flags)
 
     def path_clear(self) -> None:
@@ -282,7 +285,7 @@ class WrappedContext:
         self.io = cast(imgui_ext.IO, WrappedIO(ctx.get_io_internal()))
         self.platform_io = ctx.get_platform_io_internal()
         self.style = ctx.get_style_internal()
-        self._window_size_constraints_cb: Callable | None = None   # for keeping a Python function alive
+        self._window_size_constraints_cb: typing.Optional[Callable] = None   # for keeping a Python function alive
         self._drawlist_by_ptr: dict[int, DrawList] = {}
 
     def _wrap_drawlist(self, drawlist: imgui_ext.DrawList) -> DrawList:
@@ -325,19 +328,19 @@ class WrappedIO:
             refs[name] = value
         setattr(refs['io'], name, value)
 
-_current_context: WrappedContext | None = None
+_current_context: typing.Optional[WrappedContext] = None
 
 #------------------------------------------------------------------------
 
 # Override some imgui ext functions to handle references to the implicit context.
 
-def create_context(shared_font_atlas: imgui_ext.FontAtlas | None = None) -> WrappedContext:
+def create_context(shared_font_atlas: typing.Optional[imgui_ext.FontAtlas] = None) -> WrappedContext:
     '''Create an ImGui `Context`.  The newly created context is also set current.'''
     global _current_context
     _current_context = WrappedContext(imgui_ext.create_context_internal(shared_font_atlas))
     return _current_context
 
-def get_current_context() -> WrappedContext | None:
+def get_current_context() -> typing.Optional[WrappedContext]:
     '''Get the current ImGui context.'''
     return _current_context
 
@@ -347,7 +350,7 @@ def set_current_context(ctx: WrappedContext) -> None:
     _current_context = ctx
     imgui_ext.set_current_context_internal(ctx.context)
 
-def destroy_context(ctx: WrappedContext | None):
+def destroy_context(ctx: typing.Optional[WrappedContext]):
     '''Destroy ImGui `Context`.  `None` = destroy current context.'''
     global _current_context
     prev_ctx = get_current_context()
@@ -406,37 +409,37 @@ def get_window_draw_list() -> DrawList:
     assert ctx is not None
     return ctx._wrap_drawlist(ctx.context.get_window_draw_list_internal())
 
-def style_colors_dark(dst: imgui_ext.Style | None = None) -> None:
+def style_colors_dark(dst: typing.Optional[imgui_ext.Style] = None) -> None:
     '''Write dark mode styles into the destination style.  Set directly to context's style if dst is None.'''
     if dst is None:
         dst = get_style()
     imgui_ext.style_colors_dark_internal(dst)
 
-def style_colors_light(dst: imgui_ext.Style | None = None) -> None:
+def style_colors_light(dst: typing.Optional[imgui_ext.Style] = None) -> None:
     '''Write light mode styles into the destination style.  Set directly to context's style if dst is None.'''
     if dst is None:
         dst = get_style()
     imgui_ext.style_colors_light_internal(dst)
 
-def style_colors_classic(dst: imgui_ext.Style | None = None) -> None:
+def style_colors_classic(dst: typing.Optional[imgui_ext.Style] = None) -> None:
     '''Write classic mode styles into the destination style.  Set directly to context's style if dst is None.'''
     if dst is None:
         dst = get_style()
     imgui_ext.style_colors_classic_internal(dst)
 
-def accept_drag_drop_payload(type: str, flags: imgui_ext.DragDropFlags = imgui_ext.DragDropFlags.NONE) -> imgui_ext.Payload | None:
+def accept_drag_drop_payload(type: str, flags: imgui_ext.DragDropFlags = imgui_ext.DragDropFlags.NONE) -> typing.Optional[imgui_ext.Payload]:
     '''Accept contents of a given type. If `DragDropFlags.ACCEPT_BEFORE_DELIVERY` is set you can peek into the payload before the mouse button is released.'''
     ctx = get_current_context()
     assert ctx is not None
     return ctx.context.accept_drag_drop_payload_internal(type, flags)
 
-def get_drag_drop_payload() -> imgui_ext.Payload | None:
+def get_drag_drop_payload() -> typing.Optional[imgui_ext.Payload]:
     '''Peek directly into the current payload from anywhere. Returns `None` when drag and drop is finished or inactive. Use `Payload.is_data_type()` to test for the payload type.'''
     ctx = get_current_context()
     assert ctx is not None
     return ctx.context.get_drag_drop_payload_internal()
 
-def set_next_window_size_constraints(size_min: tuple[float, float], size_max: tuple[float, float], cb: Callable[[tuple[float, float], tuple[float, float], tuple[float, float], int], tuple[float, float]] | None = None, user_data_id: int = 0) -> None:
+def set_next_window_size_constraints(size_min: tuple[float, float], size_max: tuple[float, float], cb: typing.Optional[Callable[[tuple[float, float], tuple[float, float], tuple[float, float], int], tuple[float, float]]] = None, user_data_id: int = 0) -> None:
     """
     Set next window size limits.  Use 0.0 or FLT_MAX if you don't want limits.  Use -1 for both min and max of same axis to preserve current size (which itself is a constraint).  Use callback to apply non-trivial programmatic constraints.
 

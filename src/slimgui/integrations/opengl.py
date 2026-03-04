@@ -269,18 +269,30 @@ class OpenGLRenderer(BaseRenderer):
             # todo: allow to iterate over _CmdList
             idx_type = gl.GL_UNSIGNED_SHORT if imgui.INDEX_SIZE == 2 else gl.GL_UNSIGNED_INT
             for cmd in drawlist.commands:
-                match cmd.run_callback(drawlist):
-                    case imgui.DrawListCallbackResult.CALLBACK:
-                        # callback was called, nothing further needed
-                        pass
-                    case imgui.DrawListCallbackResult.DRAW:
-                        # no callback, just draw
-                        gl.glBindTexture(gl.GL_TEXTURE_2D, cmd.tex_ref.get_tex_id())
-                        x, y, z, w = cmd.clip_rect
-                        gl.glScissor(int(x), int(fb_height - w), int(z - x), int(w - y))
-                        gl.glDrawElementsBaseVertex(gl.GL_TRIANGLES, cmd.elem_count, idx_type, ctypes.c_void_p(cmd.idx_offset * imgui.INDEX_SIZE), cmd.vtx_offset)
-                    case imgui.DrawListCallbackResult.RESET_RENDER_STATE:
-                        self._reset_gl_render_state(fb_width, fb_height)
+                res = cmd.run_callback(drawlist)
+                if res == imgui.DrawListCallbackResult.CALLBACK:
+                    # callback was called, nothing further needed
+                    pass
+                elif res == imgui.DrawListCallbackResult.DRAW:
+                    # no callback, just draw
+                    gl.glBindTexture(gl.GL_TEXTURE_2D, cmd.tex_ref.get_tex_id())
+                    x, y, z, w = cmd.clip_rect
+                    gl.glScissor(int(x), int(fb_height - w), int(z - x), int(w - y))
+                    gl.glDrawElementsBaseVertex(gl.GL_TRIANGLES, cmd.elem_count, idx_type, ctypes.c_void_p(cmd.idx_offset * imgui.INDEX_SIZE), cmd.vtx_offset)
+                elif res == imgui.DrawListCallbackResult.RESET_RENDER_STATE:
+                    self._reset_gl_render_state(fb_width, fb_height)
+                # match cmd.run_callback(drawlist):
+                #     case imgui.DrawListCallbackResult.CALLBACK:
+                #         # callback was called, nothing further needed
+                #         pass
+                #     case imgui.DrawListCallbackResult.DRAW:
+                #         # no callback, just draw
+                #         gl.glBindTexture(gl.GL_TEXTURE_2D, cmd.tex_ref.get_tex_id())
+                #         x, y, z, w = cmd.clip_rect
+                #         gl.glScissor(int(x), int(fb_height - w), int(z - x), int(w - y))
+                #         gl.glDrawElementsBaseVertex(gl.GL_TRIANGLES, cmd.elem_count, idx_type, ctypes.c_void_p(cmd.idx_offset * imgui.INDEX_SIZE), cmd.vtx_offset)
+                #     case imgui.DrawListCallbackResult.RESET_RENDER_STATE:
+                #         self._reset_gl_render_state(fb_width, fb_height)
 
         # restore modified GL state
         restore_common_gl_state(common_gl_state_tuple)

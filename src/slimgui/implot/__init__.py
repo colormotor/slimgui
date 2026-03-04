@@ -3,6 +3,7 @@ See https://nurpax.github.io/slimgui/apiref_implot.html for ImPlot specific docs
 
 See https://nurpax.github.io/slimgui for Slimgui docs.
 '''
+import typing
 from ..slimgui_ext import imgui
 from ..slimgui_ext import implot as implot
 from ..slimgui_ext.implot import *
@@ -12,7 +13,7 @@ class WrappedContext:
     def __init__(self, ctx: implot.Context):
         self.context = ctx
 
-_current_context: WrappedContext | None = None
+_current_context: typing.Optional[WrappedContext] = None
 
 # Override some imgui ext functions to handle references to the implicit context.
 
@@ -22,7 +23,7 @@ def create_context() -> WrappedContext:
     _current_context = WrappedContext(implot.create_context_internal())
     return _current_context
 
-def get_current_context() -> WrappedContext | None:
+def get_current_context() -> typing.Optional[WrappedContext]:
     '''Returns the current ImPlot context. `None` if no context has ben set.'''
     return _current_context
 
@@ -32,7 +33,7 @@ def set_current_context(ctx: WrappedContext) -> None:
     _current_context = ctx
     implot.set_current_context_internal(ctx.context)
 
-def destroy_context(ctx: WrappedContext | None):
+def destroy_context(ctx: typing.Optional[WrappedContext]):
     '''Destroys an ImPlot context. Call this before `imgui.destroy_context()`. `None` = destroy current context.'''
     global _current_context
     prev_ctx = get_current_context()

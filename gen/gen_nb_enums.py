@@ -6,6 +6,8 @@ import re
 import subprocess
 import click
 
+from typing import Any, Dict, Optional, Set, Tuple, List
+
 import gen_utils
 from gen_utils import enum_list_imgui, enum_list_implot
 
@@ -45,7 +47,7 @@ class GenContext:
             raise Exception(f"Error formatting code: {errors}")
         return formatted_code
 
-    def generate_enums(self, syms: ImguiSymbols | None):
+    def generate_enums(self, syms: Optional[ImguiSymbols]):
         with open(os.path.join(self._defs_dir, "structs_and_enums.json"), "rt", encoding="utf-8") as f:
             doc = json.load(f)
 
@@ -69,52 +71,110 @@ class GenContext:
                 self.write(f'.value("{enum_field_py_name}", {enum_field_cimgui_name}{doc_part})\n')
             self.write(";")
 
+        # if 'ImGuiKey' in doc['enums']:
+        #     self.write('nb::enum_<ImGuiKey>(m, "Key", nb::is_arithmetic())\n')
+        #     # Enum values
+        #     for e in doc["enums"]["ImGuiKey"]:
+        #         ename = e["name"].replace("ImGuiKey_", "key").replace("ImGuiMod_", "mod")
+        #         enum_field_py_name = gen_utils.camel_to_snake(ename).upper()
+        #         # Kludge to fix snake case problem for KEY_0-KEY_9
+        #         if (m := re.match(r"^KEY(\d+)$", enum_field_py_name)) is not None:
+        #             enum_field_py_name = f"KEY_{m.group(1)}"
+        #         enum_field_cimgui_name = e["name"]
+        #         self.write(f'.value("{enum_field_py_name}", {enum_field_cimgui_name})\n')
+        #     self.write(";")
         if 'ImGuiKey' in doc['enums']:
             self.write('nb::enum_<ImGuiKey>(m, "Key", nb::is_arithmetic())\n')
             # Enum values
             for e in doc["enums"]["ImGuiKey"]:
                 ename = e["name"].replace("ImGuiKey_", "key").replace("ImGuiMod_", "mod")
                 enum_field_py_name = gen_utils.camel_to_snake(ename).upper()
+
                 # Kludge to fix snake case problem for KEY_0-KEY_9
-                if (m := re.match(r"^KEY(\d+)$", enum_field_py_name)) is not None:
-                    enum_field_py_name = f"KEY_{m.group(1)}"
+                m = re.match(r"^KEY(\d+)$", enum_field_py_name)
+                if m is not None:
+                    enum_field_py_name = "KEY_{}".format(m.group(1))
+
                 enum_field_cimgui_name = e["name"]
                 self.write(f'.value("{enum_field_py_name}", {enum_field_cimgui_name})\n')
+
             self.write(";")
 
+# def _best_effort_imgui_parse(header_path: str, enum_list: list[tuple[str, str]]) -> ImguiSymbols:
+#     with open(header_path, "rt", encoding="utf-8") as f:
+#         lines = f.readlines()
 
-def _best_effort_imgui_parse(header_path: str, enum_list: list[tuple[str, str]]) -> ImguiSymbols:
+#     enum_docs: dict[str, list[tuple[str, str]]] = {}
+#     state = None
+#     for line in lines:
+#         if state is None:
+#             for e in enum_list:
+#                 if m := re.match(f'^enum {e[0]}\\s*', line):
+#                     state = e[0]
+#                     enum_docs[state] = []
+#                     break
+#         elif (m := re.match(f"^\\s*{state}(\\S*)\\s*[,=].*// (.*)", line)) is not None:
+#             assert state in enum_docs and state is not None
+#             doc_string = m.group(2)
+#             # Apply some syntax fixes get get rid of spurious quotes
+#             doc_string = doc_string.rstrip('"')
+#             doc_string = doc_string.replace('"IMPORTANT:', 'IMPORTANT:')
+#             doc_string = doc_string.replace('"', '\\"') # finally quote
+#             enum_docs[state].append((f'{state}{m.group(1)}', doc_string))
+#         elif m := re.match(r"^{\s*", line):
+#             continue
+#         elif m := re.match(r"^\s*};", line):
+#             state = None
+
+#     return ImguiSymbols(enums=enum_docs)
+
+def _best_effort_imgui_parse(header_path: str,
+                             enum_list: List[Tuple[str, str]]) -> ImguiSymbols:
     with open(header_path, "rt", encoding="utf-8") as f:
         lines = f.readlines()
 
-    enum_docs: dict[str, list[tuple[str, str]]] = {}
+    enum_docs: Dict[str, List[Tuple[str, str]]] = {}
     state = None
+
     for line in lines:
         if state is None:
-            for e in enum_list:
-                if m := re.match(f'^enum {e[0]}\\s*', line):
-                    state = e[0]
+            for enum_prefix, _py_name in enum_list:
+                # Match: enum ImGuiFoo_ ...
+                if re.match(r'^enum\s+' + re.escape(enum_prefix) + r'\s*', line):
+                    state = enum_prefix
                     enum_docs[state] = []
                     break
-        elif (m := re.match(f"^\\s*{state}(\\S*)\\s*[,=].*// (.*)", line)) is not None:
-            assert state in enum_docs and state is not None
+            continue
+
+        # We are inside an enum block for `state`
+        m = re.match(r'^\s*' + re.escape(state) + r'(\S*)\s*[,=].*//\s*(.*)', line)
+        if m is not None:
             doc_string = m.group(2)
-            # Apply some syntax fixes get get rid of spurious quotes
+
+            # Apply some syntax fixes to get rid of spurious quotes
             doc_string = doc_string.rstrip('"')
             doc_string = doc_string.replace('"IMPORTANT:', 'IMPORTANT:')
-            doc_string = doc_string.replace('"', '\\"') # finally quote
+            doc_string = doc_string.replace('"', r'\"')  # escape remaining quotes
+
             enum_docs[state].append((f'{state}{m.group(1)}', doc_string))
-        elif m := re.match(r"^{\s*", line):
             continue
-        elif m := re.match(r"^\s*};", line):
+
+        # Skip opening brace line
+        if re.match(r'^\s*{\s*', line):
+            continue
+
+        # End of enum block
+        if re.match(r'^\s*};', line):
             state = None
+            continue
 
     return ImguiSymbols(enums=enum_docs)
+
 
 @click.command()
 @click.option("--cimgui-defs-dir", default=os.path.join(os.path.dirname(__file__), "cimgui"))
 @click.option("--imgui-h", default='src/c/imgui/imgui.h')
-def main(cimgui_defs_dir, imgui_h: str | None):
+def main(cimgui_defs_dir, imgui_h: Optional[str]):
     enum_list = enum_list_imgui
     if 'implot' in cimgui_defs_dir:
         enum_list = enum_list_implot

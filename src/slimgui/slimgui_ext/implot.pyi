@@ -1,11 +1,11 @@
 from collections.abc import Iterator, Sequence
 import enum
-from typing import Annotated, overload, Any
+from typing import Annotated, Optional, Union, overload, Any
 
 import numpy
 from numpy.typing import NDArray
 
-import slimgui_ext.imgui
+import slimgui.slimgui_ext.imgui
 
 
 class Axis(enum.IntEnum):
@@ -30,11 +30,6 @@ class Axis(enum.IntEnum):
     COUNT = 6
 
 class PlotFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -74,11 +69,6 @@ class PlotFlags(enum.IntFlag):
     CANVAS_ONLY = 55
 
 class AxisFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -149,11 +139,6 @@ class AxisFlags(enum.IntFlag):
     AUX_DEFAULT = 258
 
 class SubplotFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -207,11 +192,6 @@ class SubplotFlags(enum.IntFlag):
     """
 
 class LegendFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -239,11 +219,6 @@ class LegendFlags(enum.IntFlag):
     """Legend entries will be displayed in alphabetical order"""
 
 class MouseTextFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -257,11 +232,6 @@ class MouseTextFlags(enum.IntFlag):
     """Always display mouse position even if plot not hovered"""
 
 class DragToolFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -280,11 +250,6 @@ class DragToolFlags(enum.IntFlag):
     """
 
 class ColormapScaleFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -300,11 +265,6 @@ class ColormapScaleFlags(enum.IntFlag):
     """
 
 class ItemFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
 
     NO_LEGEND = 1
@@ -314,11 +274,6 @@ class ItemFlags(enum.IntFlag):
     """The item won't be considered for plot fits"""
 
 class LineFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -340,11 +295,6 @@ class LineFlags(enum.IntFlag):
     """
 
 class ScatterFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -352,11 +302,6 @@ class ScatterFlags(enum.IntFlag):
     """Markers on the edge of a plot will not be clipped"""
 
 class StairsFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -371,20 +316,10 @@ class StairsFlags(enum.IntFlag):
     """
 
 class ShadedFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
 class BarsFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -392,11 +327,6 @@ class BarsFlags(enum.IntFlag):
     """Bars will be rendered horizontally on the current y-axis"""
 
 class BarGroupsFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -407,11 +337,6 @@ class BarGroupsFlags(enum.IntFlag):
     """Items in a group will be stacked on top of each other"""
 
 class ErrorBarsFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -419,11 +344,6 @@ class ErrorBarsFlags(enum.IntFlag):
     """Error bars will be rendered horizontally on the current y-axis"""
 
 class StemsFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -431,11 +351,6 @@ class StemsFlags(enum.IntFlag):
     """Stems will be rendered horizontally on the current y-axis"""
 
 class InfLinesFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -443,11 +358,6 @@ class InfLinesFlags(enum.IntFlag):
     """Lines will be rendered horizontally on the current y-axis"""
 
 class PieChartFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -465,11 +375,6 @@ class PieChartFlags(enum.IntFlag):
     """Explode legend-hovered slice"""
 
 class HeatmapFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -477,11 +382,6 @@ class HeatmapFlags(enum.IntFlag):
     """Data will be read in column major order"""
 
 class HistogramFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -511,29 +411,14 @@ class HistogramFlags(enum.IntFlag):
     """
 
 class DigitalFlags(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
 class ImageFlag(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
 class TextFlag(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -541,11 +426,6 @@ class TextFlag(enum.IntFlag):
     """Text will be rendered vertically"""
 
 class DummyFlag(enum.IntFlag):
-    __str__ = __repr__
-
-    def __repr__(self, /):
-        """Return repr(self)."""
-
     NONE = 0
     """Default"""
 
@@ -1069,7 +949,7 @@ class InputMap:
 class Context:
     """ImPlot context (opaque struct, see implot_internal.h)"""
 
-    def get_plot_draw_list_internal(self) -> slimgui_ext.imgui.DrawList: ...
+    def get_plot_draw_list_internal(self) -> slimgui.slimgui_ext.imgui.DrawList: ...
 
     def get_style_internal(self) -> Style: ...
 
@@ -1088,15 +968,15 @@ def show_metrics_window(closable: bool = False) -> bool:
     """Shows ImPlot metrics/debug information window."""
 
 @overload
-def setup_axis_ticks(axis: int, values: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], labels: Sequence[str] | None = None, keep_default: bool = False) -> None:
+def setup_axis_ticks(axis: int, values: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], labels: Optional[Sequence[str]] = None, keep_default: bool = False) -> None:
     """
     Sets an axis' ticks and optionally the labels. To keep the default ticks, set `keep_default=True`.
     """
 
 @overload
-def setup_axis_ticks(axis: int, v_min: float, v_max: float, n_ticks: int, labels: Sequence[str] | None = None, keep_default: bool = False) -> None: ...
+def setup_axis_ticks(axis: int, v_min: float, v_max: float, n_ticks: int, labels: Optional[Sequence[str]] = None, keep_default: bool = False) -> None: ...
 
-def begin_subplots(title_id: str, rows: int, cols: int, size: tuple[float, float], flags: SubplotFlags = SubplotFlags.NONE, row_ratios: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu')] | None = None, col_ratios: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu')] | None = None) -> bool:
+def begin_subplots(title_id: str, rows: int, cols: int, size: tuple[float, float], flags: SubplotFlags = SubplotFlags.NONE, row_ratios: Optional[Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu')]] = None, col_ratios: Optional[Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu')]] = None) -> bool:
     """
     See https://nurpax.github.io/slimgui/apiref_implot.html#subplots for details.
     """
@@ -1178,17 +1058,17 @@ def plot_inf_lines(label_id: str, values: Annotated[NDArray[Any], dict(shape=(No
     Plots infinite vertical or horizontal lines (e.g. for references or asymptotes).
     """
 
-def plot_heatmap(label_id: str, values: Annotated[NDArray[Any], dict(shape=(None, None), order='C', device='cpu', writable=False)], scale_min: float = 0, scale_max: float = 0.0, label_fmt: str | None = '%.1f', bounds_min: tuple[float, float] = (0.0, 0.0), bounds_max: tuple[float, float] = (1.0, 1.0), flags: HeatmapFlags = HeatmapFlags.NONE) -> None:
+def plot_heatmap(label_id: str, values: Annotated[NDArray[Any], dict(shape=(None, None), order='C', device='cpu', writable=False)], scale_min: float = 0, scale_max: float = 0.0, label_fmt: Optional[str] = '%.1f', bounds_min: tuple[float, float] = (0.0, 0.0), bounds_max: tuple[float, float] = (1.0, 1.0), flags: HeatmapFlags = HeatmapFlags.NONE) -> None:
     """
     Plots a 2D heatmap chart. `values` is expected to have shape (rows, cols). Leave `scale_min` and `scale_max` both at 0 for automatic color scaling, or set them to a predefined range. `label_fmt` can be set to `None` for no labels.
     """
 
-def plot_histogram(label_id: str, values: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], bins: int | Bin = Bin.STURGES, bar_scale: float = 1.0, range: tuple[float, float] | None = None, flags: HistogramFlags = HistogramFlags.NONE) -> float:
+def plot_histogram(label_id: str, values: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], bins: Union[int, Bin] = Bin.STURGES, bar_scale: float = 1.0, range: Optional[tuple[float, float]] = None, flags: HistogramFlags = HistogramFlags.NONE) -> float:
     """
     Plots a horizontal histogram. `bins` can be a positive integer or a method specified with the `implot.Bin` enum. If `range` is left unspecified, the min/max of `values` will be used as the range.  Otherwise, outlier values outside of the range are not binned. The largest bin count or density is returned.
     """
 
-def plot_histogram2d(label_id: str, xs: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], ys: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], x_bins: int | Bin = Bin.STURGES, y_bins: int | Bin = Bin.STURGES, range: tuple[tuple[float, float], tuple[float, float]] | None = None, flags: HistogramFlags = HistogramFlags.NONE) -> float:
+def plot_histogram2d(label_id: str, xs: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], ys: Annotated[NDArray[Any], dict(shape=(None,), order='C', device='cpu', writable=False)], x_bins: Union[int, Bin] = Bin.STURGES, y_bins: Union[int, Bin] = Bin.STURGES, range: Optional[tuple[tuple[float, float], tuple[float, float]]] = None, flags: HistogramFlags = HistogramFlags.NONE) -> float:
     """
     Plots two dimensional, bivariate histogram as a heatmap. `x_bins` and `y_bins` can be a positive integer or a method specified with the `implot.Bin` enum. If `range` is left unspecified, the min/max of `xs` an `ys` will be used as the ranges. Otherwise, outlier values outside of range are not binned. The largest bin count or density is returned.
     """
@@ -1198,12 +1078,12 @@ def plot_digital(label_id: str, xs: Annotated[NDArray[Any], dict(shape=(None,), 
     Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
     """
 
-def plot_image(label_id: str, tex_ref: slimgui_ext.imgui.TextureRef | int, bounds_min: tuple[float, float], bounds_max: tuple[float, float], uv0: tuple[float, float] = (0,0), uv1: tuple[float, float] = (1,1), tint_col: tuple[float, float, float, float] = (1,1,1,1), flags: ImageFlag = ImageFlag.NONE) -> None:
+def plot_image(label_id: str, tex_ref: Union[slimgui.slimgui_ext.imgui.TextureRef, int], bounds_min: tuple[float, float], bounds_max: tuple[float, float], uv0: tuple[float, float] = (0,0), uv1: tuple[float, float] = (1,1), tint_col: tuple[float, float, float, float] = (1,1,1,1), flags: ImageFlag = ImageFlag.NONE) -> None:
     """
     Plots an axis-aligned image. `bounds_min`/`bounds_max` are in plot coordinates (y-up) and `uv0`/`uv1` are in texture coordinates (y-down).
     """
 
-def drag_point(id: int, point: Annotated[NDArray[Any], dict(shape=(2), order='C', device='cpu')], col: tuple[float, float, float, float], size: float = 4.0, flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_hovered: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_held: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None) -> bool:
+def drag_point(id: int, point: Annotated[NDArray[Any], dict(shape=(2), order='C', device='cpu')], col: tuple[float, float, float, float], size: float = 4.0, flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_hovered: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_held: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None) -> bool:
     """
     Shows a draggable point at `point`.  The updated drag position will be written to the `point` array.  Color `col` defaults to `imgui.Col.TEXT`.
     `out_clicked`, `out_hovered`, and `out_held` are optional single bool np.arrays that will be set to `True` if the point is clicked, hovered, or held, respectively.
@@ -1212,7 +1092,7 @@ def drag_point(id: int, point: Annotated[NDArray[Any], dict(shape=(2), order='C'
     The input `np.array` arguments are motivated by being able to pass in a mutable reference value that the bound API functions can write to.  See [https://nurpax.github.io/slimgui/apiref_implot.html#plot-tools](https://nurpax.github.io/slimgui/apiref_implot.html#plot-tools) for details.
     """
 
-def drag_line_x(id: int, x: Annotated[NDArray[Any], dict(shape=(), order='C', device='cpu')], col: tuple[float, float, float, float], thickness: float = 1, flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_hovered: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_held: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None) -> bool:
+def drag_line_x(id: int, x: Annotated[NDArray[Any], dict(shape=(), order='C', device='cpu')], col: tuple[float, float, float, float], thickness: float = 1, flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_hovered: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_held: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None) -> bool:
     """
     Shows a draggable vertical guide line at an x-value. The updated drag position will be written to the `x` array.  Color `col` defaults to `imgui.Col.TEXT`.
     `out_clicked`, `out_hovered`, and `out_held` are optional single bool np.arrays that will be set to `True` if the point is clicked, hovered, or held, respectively.
@@ -1221,7 +1101,7 @@ def drag_line_x(id: int, x: Annotated[NDArray[Any], dict(shape=(), order='C', de
     The input `np.array` arguments are motivated by being able to pass in a mutable reference value that the bound API functions can write to.  See [https://nurpax.github.io/slimgui/apiref_implot.html#plot-tools](https://nurpax.github.io/slimgui/apiref_implot.html#plot-tools) for details.
     """
 
-def drag_line_y(id: int, y: Annotated[NDArray[Any], dict(shape=(), order='C', device='cpu')], col: tuple[float, float, float, float], thickness: float = 1, flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_hovered: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_held: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None) -> bool:
+def drag_line_y(id: int, y: Annotated[NDArray[Any], dict(shape=(), order='C', device='cpu')], col: tuple[float, float, float, float], thickness: float = 1, flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_hovered: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_held: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None) -> bool:
     """
     Shows a draggable horizontal guide line at a y-value. The updated drag position will be written to the `y` array.  Color `col` defaults to `imgui.Col.TEXT`.
     `out_clicked`, `out_hovered`, and `out_held` are optional single bool np.arrays that will be set to `True` if the line is clicked, hovered, or held, respectively.
@@ -1230,7 +1110,7 @@ def drag_line_y(id: int, y: Annotated[NDArray[Any], dict(shape=(), order='C', de
     The input `np.array` arguments are motivated by being able to pass in a mutable reference value that the bound API functions can write to.  See [https://nurpax.github.io/slimgui/apiref_implot.html#plot-tools](https://nurpax.github.io/slimgui/apiref_implot.html#plot-tools) for details.
     """
 
-def drag_rect(id: int, rect: Annotated[NDArray[Any], dict(shape=(2, 2), order='C', device='cpu')], col: tuple[float, float, float, float], flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_hovered: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None, out_held: Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')] | None = None) -> bool:
+def drag_rect(id: int, rect: Annotated[NDArray[Any], dict(shape=(2, 2), order='C', device='cpu')], col: tuple[float, float, float, float], flags: DragToolFlags = DragToolFlags.NONE, out_clicked: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_hovered: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None, out_held: Optional[Annotated[NDArray[numpy.bool], dict(shape=(), order='C', device='cpu')]] = None) -> bool:
     """
     Shows a draggable rectangle at `[[x0, y0], [x1, y1]` coordinates, loaded from `rect`.  The updated drag rectangle will be written to the `point` array.  Color `col` defaults to `imgui.Col.TEXT`.
     `out_clicked`, `out_hovered`, and `out_held` are optional single bool np.arrays that will be set to `True` if the point is clicked, hovered, or held, respectively.
@@ -1289,7 +1169,7 @@ def end_plot() -> None:
     Only call `implot.end_plot()` if `implot.begin_plot()` returns `True`! Typically called at the end of an if statement conditioned on `implot.begin_plot()`. See example above.
     """
 
-def setup_axis(axis: Axis, label: str | None = None, flags: AxisFlags = AxisFlags.NONE) -> None:
+def setup_axis(axis: Axis, label: Optional[str] = None, flags: AxisFlags = AxisFlags.NONE) -> None:
     """
     Enables an axis or sets the label and/or flags for an existing axis. Leave `label=None` for no label.
     """
@@ -1313,7 +1193,7 @@ def setup_axis_limits_constraints(axis: Axis, v_min: float, v_max: float) -> Non
 def setup_axis_zoom_constraints(axis: Axis, z_min: float, z_max: float) -> None:
     """Sets an axis' zoom constraints."""
 
-def setup_axes(x_label: str | None, y_label: str | None, x_flags: AxisFlags = AxisFlags.NONE, y_flags: AxisFlags = AxisFlags.NONE) -> None:
+def setup_axes(x_label: Optional[str], y_label: Optional[str], x_flags: AxisFlags = AxisFlags.NONE, y_flags: AxisFlags = AxisFlags.NONE) -> None:
     """
     Sets the label and/or flags for primary X and Y axes (shorthand for two calls to `implot.setup_Axis()`).
     """
@@ -1371,22 +1251,22 @@ def set_axes(x_axis: Axis, y_axis: Axis) -> None:
     """Select which axis/axes will be used for subsequent plot elements."""
 
 @overload
-def pixels_to_plot(pix: tuple[float, float], x_axis: Axis | int = AUTO, y_axis: Axis | int = AUTO) -> tuple[float, float]:
+def pixels_to_plot(pix: tuple[float, float], x_axis: Union[Axis, int] = AUTO, y_axis: Union[Axis, int] = AUTO) -> tuple[float, float]:
     """
     Convert pixels to a position in the current plot's coordinate system. Passing `implot.AUTO` uses the current axes.
     """
 
 @overload
-def pixels_to_plot(x: float, y: float, x_axis: Axis | int = AUTO, y_axis: Axis | int = AUTO) -> tuple[float, float]: ...
+def pixels_to_plot(x: float, y: float, x_axis: Union[Axis, int] = AUTO, y_axis: Union[Axis, int] = AUTO) -> tuple[float, float]: ...
 
 @overload
-def plot_to_pixels(plt: tuple[float, float], x_axis: Axis | int = AUTO, y_axis: Axis | int = AUTO) -> tuple[float, float]:
+def plot_to_pixels(plt: tuple[float, float], x_axis: Union[Axis, int] = AUTO, y_axis: Union[Axis, int] = AUTO) -> tuple[float, float]:
     """
     Convert a position in the current plot's coordinate system to pixels. Passing `implot.AUTO` uses the current axes.
     """
 
 @overload
-def plot_to_pixels(x: float, y: float, x_axis: Axis | int = AUTO, y_axis: Axis | int = AUTO) -> tuple[float, float]: ...
+def plot_to_pixels(x: float, y: float, x_axis: Union[Axis, int] = AUTO, y_axis: Union[Axis, int] = AUTO) -> tuple[float, float]: ...
 
 def get_plot_pos() -> tuple[float, float]:
     """Get the current Plot position (top-left) in pixels."""
@@ -1394,7 +1274,7 @@ def get_plot_pos() -> tuple[float, float]:
 def get_plot_size() -> tuple[float, float]:
     """Get the curent Plot size in pixels."""
 
-def get_plot_mouse_pos(x_axis: Axis | int = AUTO, y_axis: Axis | int = AUTO) -> tuple[float, float]:
+def get_plot_mouse_pos(x_axis: Union[Axis, int] = AUTO, y_axis: Union[Axis, int] = AUTO) -> tuple[float, float]:
     """
     Returns the mouse position in x,y coordinates of the current plot. Passing `implot.AUTO` uses the current axes.
     """
@@ -1432,7 +1312,7 @@ def end_aligned_plots() -> None:
     Only call `implot.end_aligned_plots()` if `implot.begin_aligned_plots()` returns `True`!
     """
 
-def begin_legend_popup(label_id: str, mouse_button: slimgui_ext.imgui.MouseButton = slimgui_ext.imgui.MouseButton.RIGHT) -> bool:
+def begin_legend_popup(label_id: str, mouse_button: slimgui.slimgui_ext.imgui.MouseButton = slimgui_ext.imgui.MouseButton.RIGHT) -> bool:
     """Begin a popup for a legend entry."""
 
 def end_legend_popup() -> None:
@@ -1461,17 +1341,17 @@ def end_drag_drop_target() -> None:
     Ends a drag and drop target (currently just an alias for `imgui.end_drag_drop_target()`).
     """
 
-def begin_drag_drop_source_plot(flags: slimgui_ext.imgui.DragDropFlags = slimgui_ext.imgui.DragDropFlags.NONE) -> bool:
+def begin_drag_drop_source_plot(flags: slimgui.slimgui_ext.imgui.DragDropFlags = slimgui_ext.imgui.DragDropFlags.NONE) -> bool:
     """
     Turns the current plot's plotting area into a drag and drop source. You must hold Ctrl. Don't forget to call `implot.end_drag_drop_source()`!
     """
 
-def begin_drag_drop_source_axis(axis: Axis, flags: slimgui_ext.imgui.DragDropFlags = slimgui_ext.imgui.DragDropFlags.NONE) -> bool:
+def begin_drag_drop_source_axis(axis: Axis, flags: slimgui.slimgui_ext.imgui.DragDropFlags = slimgui_ext.imgui.DragDropFlags.NONE) -> bool:
     """
     Turns the current plot's X-axis into a drag and drop source. You must hold Ctrl. Don't forget to call `implot.end_drag_drop_source()`!
     """
 
-def begin_drag_drop_source_item(label_id: str, flags: slimgui_ext.imgui.DragDropFlags = slimgui_ext.imgui.DragDropFlags.NONE) -> bool:
+def begin_drag_drop_source_item(label_id: str, flags: slimgui.slimgui_ext.imgui.DragDropFlags = slimgui_ext.imgui.DragDropFlags.NONE) -> bool:
     """
     Turns an item in the current plot's legend into drag and drop source. Don't forget to call `implot.end_drag_drop_source()`!
     """
@@ -1481,16 +1361,16 @@ def end_drag_drop_source() -> None:
     Ends a drag and drop source (currently just an alias for `imgui.end_drag_drop_source()`).
     """
 
-def style_colors_auto(dst: Style | None = None) -> None:
+def style_colors_auto(dst: Optional[Style] = None) -> None:
     """Style plot colors for current ImGui style (default)."""
 
-def style_colors_classic(dst: Style | None = None) -> None:
+def style_colors_classic(dst: Optional[Style] = None) -> None:
     """Style plot colors for ImGui "Classic"."""
 
-def style_colors_dark(dst: Style | None = None) -> None:
+def style_colors_dark(dst: Optional[Style] = None) -> None:
     """Style plot colors for ImGui "Dark"."""
 
-def style_colors_light(dst: Style | None = None) -> None:
+def style_colors_light(dst: Optional[Style] = None) -> None:
     """Style plot colors for ImGui "Light"."""
 
 @overload
@@ -1536,7 +1416,7 @@ def set_next_line_style(col: tuple[float, float, float, float] = AUTO_COL, weigh
 def set_next_fill_style(col: tuple[float, float, float, float] = AUTO_COL, alpha_mod: float = AUTO) -> None:
     """Set the fill color for the next item only."""
 
-def set_next_marker_style(marker: Marker | int = AUTO, size: float = AUTO, fill: tuple[float, float, float, float] = AUTO_COL, weight: float = AUTO, outline: tuple[float, float, float, float] = AUTO_COL) -> None:
+def set_next_marker_style(marker: Union[Marker, int] = AUTO, size: float = AUTO, fill: tuple[float, float, float, float] = AUTO_COL, weight: float = AUTO, outline: tuple[float, float, float, float] = AUTO_COL) -> None:
     """Set the marker style for the next item only."""
 
 def set_next_error_bar_style(col: tuple[float, float, float, float] = AUTO_COL, size: float = AUTO, weight: float = AUTO) -> None:
@@ -1590,26 +1470,26 @@ def next_colormap_color() -> tuple[float, float, float, float]:
     Can also be used with no return value to skip colors if desired. You need to call this between `implot.begin_plot()`/`implot.end_plot()`!
     """
 
-def get_colormap_size(cmap: Colormap | int = AUTO) -> int:
+def get_colormap_size(cmap: Union[Colormap, int] = AUTO) -> int:
     """Returns the size of a colormap."""
 
-def get_colormap_color(idx: int, cmap: Colormap | int = AUTO) -> tuple[float, float, float, float]:
+def get_colormap_color(idx: int, cmap: Union[Colormap, int] = AUTO) -> tuple[float, float, float, float]:
     """
     Returns a color from a colormap given an index >= 0 (modulo will be performed).
     """
 
-def sample_colormap(t: float, cmap: Colormap | int = AUTO) -> tuple[float, float, float, float]:
+def sample_colormap(t: float, cmap: Union[Colormap, int] = AUTO) -> tuple[float, float, float, float]:
     """Sample a color from the current colormap given t between 0 and 1."""
 
-def colormap_scale(label: str, scale_min: float, scale_max: float, size: tuple[float, float] = (0,0), format: str = '%g', flags: ColormapScaleFlags = ColormapScaleFlags.NONE, cmap: Colormap | int = AUTO) -> None:
+def colormap_scale(label: str, scale_min: float, scale_max: float, size: tuple[float, float] = (0,0), format: str = '%g', flags: ColormapScaleFlags = ColormapScaleFlags.NONE, cmap: Union[Colormap, int] = AUTO) -> None:
     """
     Shows a vertical color scale with linear spaced ticks using the specified color map. Use double hashes to hide label (e.g. "##NoLabel"). If `scale_min > scale_max`, the scale to color mapping will be reversed.
     """
 
-def colormap_button(label: str, size: tuple[float, float] = (0,0), cmap: Colormap | int = AUTO) -> bool:
+def colormap_button(label: str, size: tuple[float, float] = (0,0), cmap: Union[Colormap, int] = AUTO) -> bool:
     """Shows a button with a colormap gradient brackground."""
 
-def bust_color_cache(plot_title_id: str | None = None) -> None:
+def bust_color_cache(plot_title_id: Optional[str] = None) -> None:
     """
     When items in a plot sample their color from a colormap, the color is cached and does not change
     unless explicitly overriden. Therefore, if you change the colormap after the item has already been plotted,
@@ -1620,12 +1500,12 @@ def bust_color_cache(plot_title_id: str | None = None) -> None:
     need this function, but it is available for applications that require runtime colormap swaps (e.g. Heatmaps demo).
     """
 
-def map_input_default(dst: InputMap | None = None) -> None:
+def map_input_default(dst: Optional[InputMap] = None) -> None:
     """
     Default input mapping: pan = LMB drag, box select = RMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
     """
 
-def map_input_reverse(dst: InputMap | None = None) -> None:
+def map_input_reverse(dst: Optional[InputMap] = None) -> None:
     """
     Reverse input mapping: pan = RMB drag, box select = LMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
     """
@@ -1663,7 +1543,7 @@ def show_colormap_selector(label: str) -> bool:
 def show_input_map_selector(label: str) -> bool:
     """Shows ImPlot input map selector dropdown menu."""
 
-def show_style_editor(ref: Style | None = None) -> None:
+def show_style_editor(ref: Optional[Style] = None) -> None:
     """Shows ImPlot style editor block (not a window)."""
 
 def show_user_guide() -> None:

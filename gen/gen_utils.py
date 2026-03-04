@@ -141,7 +141,7 @@ def _is_special_case_string(tokens: list[str]) -> Optional[list[str]]:
 def _tokenize(s: str) -> list[str]:
     return re.findall(r'\w+|[^\w\s]|\s+', s)
 
-def _match_funcname_parens(tokens: list[str]) -> tuple[int, str, str] | None:
+def _match_funcname_parens(tokens: list[str]) -> Optional[tuple[int, str, str]]:
     '''Parse an input string that that is expected to start with a function name word, followed by
       open paren, an arbitrary number of tokens (including opening and closing parens), and a final closing
       paren.  Return the # of tokens consumed, function name and the contents of what was inside
@@ -166,7 +166,7 @@ def _match_funcname_parens(tokens: list[str]) -> tuple[int, str, str] | None:
             return None
     return tok_idx, funcname, ''.join(tokens[2:tok_idx-1])
 
-def translate_enum_name(sym: str) -> str | None:
+def translate_enum_name(sym: str) -> Optional[str]:
     '''Translate an enum name to a Python enum name.'''
 
     if any(sym.startswith(enum_name) for enum_name in _known_enums.keys()):
@@ -186,47 +186,131 @@ def _best_effort_fix_funcall_args(t: str) -> str:
     tokens = _tokenize(t)
     tok_idx = 0
     out = []
-    while tok_idx < len(tokens):
-        match tokens[tok_idx:]:
-            case ['0', '.', '0f', *_]:
-                out += ['0.0']
-                tok_idx += 3
-            case ['1', '.', '0f', *_]:
-                out += ['1.0']
-                tok_idx += 3
-            case ['0', '.', '5f', *_]:
-                out += ['0.5']
-                tok_idx += 3
-            case ['ImVec2', *_]: # skip ImVec2(...) -> (...)
-                tok_idx += 1
-            case _:
-                sym = tokens[tok_idx]
-                if (m := translate_enum_name(sym)) is not None:
-                    out += [m]
-                else:
-                    out += [sym]
-                tok_idx += 1
+    n = len(tokens)
+
+    while tok_idx < n:
+        # Lookahead helpers
+        t0 = tokens[tok_idx]
+        t1 = tokens[tok_idx + 1] if tok_idx + 1 < n else None
+        t2 = tokens[tok_idx + 2] if tok_idx + 2 < n else None
+
+        # 0.0f / 1.0f / 0.5f => 0.0 / 1.0 / 0.5
+        if t0 == '0' and t1 == '.' and t2 == '0f':
+            out.append('0.0')
+            tok_idx += 3
+            continue
+        if t0 == '1' and t1 == '.' and t2 == '0f':
+            out.append('1.0')
+            tok_idx += 3
+            continue
+        if t0 == '0' and t1 == '.' and t2 == '5f':
+            out.append('0.5')
+            tok_idx += 3
+            continue
+
+        # Skip "ImVec2" token so "ImVec2(...)" becomes "(...)"
+        if t0 == 'ImVec2':
+            tok_idx += 1
+            continue
+
+        # Enum translation
+        m = translate_enum_name(t0)
+        if m is not None:
+            out.append(m)
+        else:
+            out.append(t0)
+
+        tok_idx += 1
+
     return ''.join(out)
 
+# def _best_effort_fix_funcall_args(t: str) -> str:
+#     tokens = _tokenize(t)
+#     tok_idx = 0
+#     out = []
+#     while tok_idx < len(tokens):
+#         match tokens[tok_idx:]:
+#             case ['0', '.', '0f', *_]:
+#                 out += ['0.0']
+#                 tok_idx += 3
+#             case ['1', '.', '0f', *_]:
+#                 out += ['1.0']
+#                 tok_idx += 3
+#             case ['0', '.', '5f', *_]:
+#                 out += ['0.5']
+#                 tok_idx += 3
+#             case ['ImVec2', *_]: # skip ImVec2(...) -> (...)
+#                 tok_idx += 1
+#             case _:
+#                 sym = tokens[tok_idx]
+#                 if (m := translate_enum_name(sym)) is not None:
+#                     out += [m]
+#                 else:
+#                     out += [sym]
+#                 tok_idx += 1
+#     return ''.join(out)
+
+# def docstring_fixer(docstring):
+#     '''Replace imgui function names in a docstring with markdown code blocks in Python naming convention that should match slimgui.'''
+#     tokens = _tokenize(docstring)
+#     imgui_funcnames = get_imgui_funcnames()
+#     out = []
+#     tok_idx = 0
+#     while tok_idx < len(tokens):
+
+#         # Skip some predefined strings that look like code that should be fixed.
+#         if (s := _is_special_case_string(tokens[tok_idx:])) is not None:
+#             out += s
+#             tok_idx += len(s)
+#             continue
+
+#         ignore_rename = { 'Value' }
+#         rest = tokens[tok_idx:]
+#         sym = rest[0]
+#         if (sym not in ignore_rename) and (sym in imgui_funcnames):
+#             if (m := _match_funcname_parens(rest)) is not None:
+#                 shift, name, contents = m
+#                 contents = _best_effort_fix_funcall_args(contents)
+#                 out.append(f'`{camel_to_snake(name)}({contents})`')
+#                 tok_idx += shift
+#             else:
+#                 out.append(f'`{camel_to_snake(sym)}`')
+#                 tok_idx += 1
+#         else:
+#             if (translated := translate_enum_name(sym)) is not None:
+#                 out.append(f'`{translated}`')
+#                 tok_idx += 1
+#             else:
+#                 out.append(sym)
+#                 tok_idx += 1
+
+#     ret = ''.join(out)
+#     if ret == '':
+#         return ret
+#     return ret[0].upper() + ret[1:]
+
 def docstring_fixer(docstring):
-    '''Replace imgui function names in a docstring with markdown code blocks in Python naming convention that should match slimgui.'''
+    """Replace imgui function names in a docstring with markdown code blocks in Python naming convention that should match slimgui."""
     tokens = _tokenize(docstring)
     imgui_funcnames = get_imgui_funcnames()
     out = []
     tok_idx = 0
-    while tok_idx < len(tokens):
+    ignore_rename = {'Value'}
 
+    while tok_idx < len(tokens):
         # Skip some predefined strings that look like code that should be fixed.
-        if (s := _is_special_case_string(tokens[tok_idx:])) is not None:
-            out += s
+        s = _is_special_case_string(tokens[tok_idx:])
+        if s is not None:
+            out.extend(s)
             tok_idx += len(s)
             continue
 
-        ignore_rename = { 'Value' }
         rest = tokens[tok_idx:]
         sym = rest[0]
+
         if (sym not in ignore_rename) and (sym in imgui_funcnames):
-            if (m := _match_funcname_parens(rest)) is not None:
+            m = _match_funcname_parens(rest)
+            if m is not None:
                 shift, name, contents = m
                 contents = _best_effort_fix_funcall_args(contents)
                 out.append(f'`{camel_to_snake(name)}({contents})`')
@@ -235,7 +319,8 @@ def docstring_fixer(docstring):
                 out.append(f'`{camel_to_snake(sym)}`')
                 tok_idx += 1
         else:
-            if (translated := translate_enum_name(sym)) is not None:
+            translated = translate_enum_name(sym)
+            if translated is not None:
                 out.append(f'`{translated}`')
                 tok_idx += 1
             else:
@@ -243,9 +328,10 @@ def docstring_fixer(docstring):
                 tok_idx += 1
 
     ret = ''.join(out)
-    if ret == '':
+    if not ret:
         return ret
     return ret[0].upper() + ret[1:]
+
 
 if __name__ == '__main__':
     #print(docstring_fixer("Allow horizontal scrollbar to appear (off by default). You may use SetNextWindowContentSize(ImVec2(width,0.0f)); prior to calling Begin() to specify width. Read code in imgui_demo in the \"Horizontal Scrolling\" section."))

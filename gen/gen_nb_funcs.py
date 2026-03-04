@@ -8,6 +8,7 @@ import subprocess
 from typing import Any
 import click
 import logging
+from typing import Optional
 
 import gen_utils
 
@@ -20,7 +21,7 @@ class ImplotFunc:
     cim_ov_name: str
     py_name: str
     arg_flags: dict[str, ArgFlags] = field(default_factory=dict)
-    docstring: str | None = None
+    docstring: Optional[str] = None
 
 # Note: using cimplot C names
 _implot_func_list: list[ImplotFunc] = [
@@ -218,8 +219,8 @@ class FuncArg:
     name: str
     cpp_type: str
     py_type: str
-    cpp_default: str | None = None
-    py_default: str | None = None
+    cpp_default: Optional[str] = None
+    py_default: Optional[str] = None
     flags: ArgFlags = ArgFlags.NONE
 
     def unwrap_cpp_arg_value(self) -> str:
@@ -265,134 +266,325 @@ class GenContext:
                         fn_def['argsT'] = args[1:]
 
         known_enums = dict(gen_utils.enum_list_implot + gen_utils.enum_list_imgui)
-
         for f in self._func_list:
             fn_def = defs[f.cim_ov_name]
             logging.info(f'==== {f.cim_ov_name} ====')
-            out_args: list[FuncArg] = []
+
+            out_args = []  # type: list[FuncArg]  # ok in 3.9, or use List[FuncArg] if you prefer
+
             for a in fn_def["argsT"]:
                 arg_name = a['name']
                 arg_flags = f.arg_flags.get(arg_name, ArgFlags.NONE)
+
                 if arg_flags & ArgFlags.OPTIONAL:
-                    assert arg_name not in fn_def['defaults'], "OPTIONAL is only used for args that can take a nullptr, but don\'t have a default"
+                    assert arg_name not in fn_def['defaults'], (
+                        "OPTIONAL is only used for args that can take a nullptr, but don't have a default"
+                    )
+
                 default = fn_def['defaults'].get(arg_name)
-                #  # IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
-                match a['type']:
-                    case 'const char*':
-                        args = { 'name': arg_name, 'cpp_type': 'const char*', 'py_type': 'str', 'flags': arg_flags }
-                        if default is not None:
-                            if default == 'nullptr':
-                                args['cpp_type'] = 'std::optional<const char*>'
-                                args['py_type'] = 'str | None'
-                                args['cpp_default'] = 'nb::none()'
-                                args['py_default'] = 'None'
-                            else:
-                                args['cpp_default'] = default
-                                args['py_default'] = default.replace('"', "'")
-                        else:
-                            if arg_flags & ArgFlags.OPTIONAL:
-                                args['cpp_type'] = 'std::optional<const char*>'
-                                args['py_type'] = 'str | None'
-                        out_args.append(FuncArg(**args))
-                    case 'const char* const[]':
-                        assert default == 'nullptr'
-                        assert False
-                        logging.warning('unimplemented const char* const[]')
-                        out_args.append(FuncArg(arg_name, cpp_type='const char* const[]', py_type='list[str]'))
-                    case ptrtype if ptrtype in {'ImPlotStyle*', 'ImPlotInputMap*'}:
-                        pname = { 'ImPlotStyle*': 'Style', 'ImPlotInputMap*': 'InputMap' }[ptrtype]
-                        args = { 'name': arg_name, 'cpp_type': ptrtype, 'py_type': pname }
-                        if default is not None:
-                            assert default == 'nullptr'
+                atype = a['type']
+
+                # const char*
+                if atype == 'const char*':
+                    args = {'name': arg_name, 'cpp_type': 'const char*', 'py_type': 'str', 'flags': arg_flags}
+
+                    if default is not None:
+                        if default == 'nullptr':
+                            args['cpp_type'] = 'std::optional<const char*>'
+                            args['py_type'] = 'Optional[str]'
                             args['cpp_default'] = 'nb::none()'
                             args['py_default'] = 'None'
-                        out_args.append(FuncArg(**args))
-                    case 'const ImVec2':
-                        if default is not None:
-                            out_args.append(FuncArg(arg_name, cpp_type='ImVec2', py_type='tuple[float, float]', cpp_default=default, py_default=default.replace('ImVec2', '')))
                         else:
-                            out_args.append(FuncArg(arg_name, cpp_type='ImVec2', py_type='tuple[float, float]'))
-                    case 'const ImPlotPoint':
-                        if default is not None:
-                            out_args.append(FuncArg(arg_name, cpp_type='ImPlotPoint', py_type='tuple[float, float]', cpp_default=default, py_default=default.replace('ImPlotPoint', '')))
-                        else:
-                            out_args.append(FuncArg(arg_name, cpp_type='ImPlotPoint', py_type='tuple[float, float]'))
-                    case 'const ImVec4':
-                        if default is not None:
-                            py_default = default.replace('ImVec4', '')
-                            if py_default == '(0,0,0,-1)':
-                                py_default = 'AUTO_COL'
-                            out_args.append(FuncArg(arg_name, cpp_type='ImVec4', py_type='tuple[float, float, float, float]', cpp_default=default, py_default=py_default))
-                        else:
-                            out_args.append(FuncArg(arg_name, cpp_type='ImVec4', py_type='tuple[float, float, float, float]'))
-                    case 'float':
-                        args = { 'name': arg_name, 'cpp_type': 'float', 'py_type': 'float' }
-                        if default is not None:
                             args['cpp_default'] = default
-                            py_default = default.replace('.f', '')
-                            if py_default == '-1':
-                                py_default = 'AUTO'
-                            args['py_default'] = py_default
-                        out_args.append(FuncArg(**args))
-                    case 'double':
-                        args = { 'name': arg_name, 'cpp_type': 'double', 'py_type': 'float' }
-                        if default is not None:
-                            args['cpp_default'] = default
-                            args['py_default'] = default.replace('.f', '')
-                        out_args.append(FuncArg(**args))
-                    case 'int':
-                        args = { 'name': arg_name, 'cpp_type': 'int', 'py_type': 'int' }
+                            args['py_default'] = default.replace('"', "'")
+                    else:
+                        if arg_flags & ArgFlags.OPTIONAL:
+                            args['cpp_type'] = 'std::optional<const char*>'
+                            args['py_type'] = 'Optional[str]'
+
+                    out_args.append(FuncArg(**args))
+
+                # const char* const[]
+                elif atype == 'const char* const[]':
+                    assert default == 'nullptr'
+                    logging.warning('unimplemented const char* const[]')
+                    assert False
+                    # out_args.append(FuncArg(arg_name, cpp_type='const char* const[]', py_type='List[str]'))
+
+                # pointer special cases
+                elif atype in {'ImPlotStyle*', 'ImPlotInputMap*'}:
+                    pname = {'ImPlotStyle*': 'Style', 'ImPlotInputMap*': 'InputMap'}[atype]
+                    args = {'name': arg_name, 'cpp_type': atype, 'py_type': pname}
+                    if default is not None:
+                        assert default == 'nullptr'
+                        args['cpp_default'] = 'nb::none()'
+                        args['py_default'] = 'None'
+                    out_args.append(FuncArg(**args))
+
+                # const ImVec2
+                elif atype == 'const ImVec2':
+                    if default is not None:
+                        out_args.append(FuncArg(
+                            arg_name,
+                            cpp_type='ImVec2',
+                            py_type='Tuple[float, float]',
+                            cpp_default=default,
+                            py_default=default.replace('ImVec2', '')
+                        ))
+                    else:
+                        out_args.append(FuncArg(arg_name, cpp_type='ImVec2', py_type='Tuple[float, float]'))
+
+                # const ImPlotPoint
+                elif atype == 'const ImPlotPoint':
+                    if default is not None:
+                        out_args.append(FuncArg(
+                            arg_name,
+                            cpp_type='ImPlotPoint',
+                            py_type='Tuple[float, float]',
+                            cpp_default=default,
+                            py_default=default.replace('ImPlotPoint', '')
+                        ))
+                    else:
+                        out_args.append(FuncArg(arg_name, cpp_type='ImPlotPoint', py_type='Tuple[float, float]'))
+
+                # const ImVec4
+                elif atype == 'const ImVec4':
+                    if default is not None:
+                        py_default = default.replace('ImVec4', '')
+                        if py_default == '(0,0,0,-1)':
+                            py_default = 'AUTO_COL'
+                        out_args.append(FuncArg(
+                            arg_name,
+                            cpp_type='ImVec4',
+                            py_type='Tuple[float, float, float, float]',
+                            cpp_default=default,
+                            py_default=py_default
+                        ))
+                    else:
+                        out_args.append(FuncArg(arg_name, cpp_type='ImVec4', py_type='Tuple[float, float, float, float]'))
+
+                # float
+                elif atype == 'float':
+                    args = {'name': arg_name, 'cpp_type': 'float', 'py_type': 'float'}
+                    if default is not None:
                         args['cpp_default'] = default
-                        args['py_default'] = default
-                        out_args.append(FuncArg(**args))
-                    case 'ImU32':
-                        args = { 'name': arg_name, 'cpp_type': 'ImU32', 'py_type': 'int' }
+                        py_default = default.replace('.f', '')
+                        if py_default == '-1':
+                            py_default = 'AUTO'
+                        args['py_default'] = py_default
+                    out_args.append(FuncArg(**args))
+
+                # double
+                elif atype == 'double':
+                    args = {'name': arg_name, 'cpp_type': 'double', 'py_type': 'float'}
+                    if default is not None:
                         args['cpp_default'] = default
-                        args['py_default'] = default
-                        out_args.append(FuncArg(**args))
-                    case 'ImTextureID':
-                        args = { 'name': arg_name, 'cpp_type': 'ImTextureID', 'py_type': 'int' }
-                        assert default is None
-                        out_args.append(FuncArg(**args))
-                    case 'ImTextureRef':
-                        args = { 'name': arg_name, 'cpp_type': 'ImTextureRef', 'py_type': 'TextureRef' }
-                        assert default is None
-                        out_args.append(FuncArg(**args))
-                    case 'bool':
-                        args = { 'name': arg_name, 'cpp_type': 'bool', 'py_type': 'bool' }
-                        args['cpp_default'] = default
-                        args['py_default'] = default.capitalize()
-                        out_args.append(FuncArg(**args))
-                    case maybe_enum if f'{maybe_enum}_' in known_enums:
-                        enum_cpp_type = f'{maybe_enum}_'
-                        enum_py_type = known_enums[enum_cpp_type]
-                        enum_mod_prefix = ''
-                        if 'ImGui' in enum_cpp_type:
-                            enum_mod_prefix = 'slimgui_ext.imgui.'
-                        py_default = None
-                        cpp_default = None
-                        if default is not None:
-                            if default == '0':
-                                py_default = f'{enum_py_type}.NONE'
-                                cpp_default = f'{enum_cpp_type}None'
-                            elif default in ['-1', 'IMPLOT_AUTO']:
-                                py_default = 'AUTO'
-                                cpp_default = f'std::variant<{enum_cpp_type}, int>(IMPLOT_AUTO)'
-                                enum_cpp_type = f'std::variant<{enum_cpp_type}, int>'
-                            elif default.startswith(enum_cpp_type):
-                                py_default = gen_utils.translate_enum_name(default)
-                                cpp_default = default
-                            elif default == '1' and enum_cpp_type.startswith('ImGuiMouseButton'):
-                                py_default = f'{enum_py_type}.RIGHT'
-                                cpp_default = f'{enum_cpp_type}Right'
-                            else:
-                                assert False, 'unknown default'
-                        if py_default is not None:
-                            py_default = enum_mod_prefix + py_default
-                        out_args.append(FuncArg(arg_name, cpp_type=enum_cpp_type, py_type=enum_py_type, cpp_default=cpp_default, py_default=py_default))
-                    case _:
-                        print(f"{f.cim_ov_name}: {a['type']}")
-                        assert False
+                        args['py_default'] = default.replace('.f', '')
+                    out_args.append(FuncArg(**args))
+
+                # int
+                elif atype == 'int':
+                    args = {'name': arg_name, 'cpp_type': 'int', 'py_type': 'int'}
+                    args['cpp_default'] = default
+                    args['py_default'] = default
+                    out_args.append(FuncArg(**args))
+
+                # ImU32
+                elif atype == 'ImU32':
+                    args = {'name': arg_name, 'cpp_type': 'ImU32', 'py_type': 'int'}
+                    args['cpp_default'] = default
+                    args['py_default'] = default
+                    out_args.append(FuncArg(**args))
+
+                # ImTextureID
+                elif atype == 'ImTextureID':
+                    args = {'name': arg_name, 'cpp_type': 'ImTextureID', 'py_type': 'int'}
+                    assert default is None
+                    out_args.append(FuncArg(**args))
+
+                # ImTextureRef
+                elif atype == 'ImTextureRef':
+                    args = {'name': arg_name, 'cpp_type': 'ImTextureRef', 'py_type': 'TextureRef'}
+                    assert default is None
+                    out_args.append(FuncArg(**args))
+
+                # bool
+                elif atype == 'bool':
+                    args = {'name': arg_name, 'cpp_type': 'bool', 'py_type': 'bool'}
+                    args['cpp_default'] = default
+                    args['py_default'] = default.capitalize()
+                    out_args.append(FuncArg(**args))
+
+                # enum-ish
+                elif f'{atype}_' in known_enums:
+                    maybe_enum = atype
+                    enum_cpp_type = f'{maybe_enum}_'
+                    enum_py_type = known_enums[enum_cpp_type]
+
+                    enum_mod_prefix = 'slimgui_ext.imgui.' if 'ImGui' in enum_cpp_type else ''
+
+                    py_default = None
+                    cpp_default = None
+
+                    if default is not None:
+                        if default == '0':
+                            py_default = f'{enum_py_type}.NONE'
+                            cpp_default = f'{enum_cpp_type}None'
+                        elif default in ['-1', 'IMPLOT_AUTO']:
+                            py_default = 'AUTO'
+                            cpp_default = f'std::variant<{enum_cpp_type}, int>(IMPLOT_AUTO)'
+                            enum_cpp_type = f'std::variant<{enum_cpp_type}, int>'
+                        elif default.startswith(enum_cpp_type):
+                            py_default = gen_utils.translate_enum_name(default)
+                            cpp_default = default
+                        elif default == '1' and enum_cpp_type.startswith('ImGuiMouseButton'):
+                            py_default = f'{enum_py_type}.RIGHT'
+                            cpp_default = f'{enum_cpp_type}Right'
+                        else:
+                            assert False, 'unknown default'
+
+                    if py_default is not None:
+                        py_default = enum_mod_prefix + py_default
+
+                    out_args.append(FuncArg(
+                        arg_name,
+                        cpp_type=enum_cpp_type,
+                        py_type=enum_py_type,
+                        cpp_default=cpp_default,
+                        py_default=py_default
+                    ))
+
+                else:
+                    print(f"{f.cim_ov_name}: {atype}")
+                    assert False
+
+        # for f in self._func_list:
+        #     fn_def = defs[f.cim_ov_name]
+        #     logging.info(f'==== {f.cim_ov_name} ====')
+        #     out_args: list[FuncArg] = []
+        #     for a in fn_def["argsT"]:
+        #         arg_name = a['name']
+        #         arg_flags = f.arg_flags.get(arg_name, ArgFlags.NONE)
+        #         if arg_flags & ArgFlags.OPTIONAL:
+        #             assert arg_name not in fn_def['defaults'], "OPTIONAL is only used for args that can take a nullptr, but don\'t have a default"
+        #         default = fn_def['defaults'].get(arg_name)
+        #         #  # IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+        #         match a['type']:
+        #             case 'const char*':
+        #                 args = { 'name': arg_name, 'cpp_type': 'const char*', 'py_type': 'str', 'flags': arg_flags }
+        #                 if default is not None:
+        #                     if default == 'nullptr':
+        #                         args['cpp_type'] = 'std::optional<const char*>'
+        #                         args['py_type'] = 'str | None'
+        #                         args['cpp_default'] = 'nb::none()'
+        #                         args['py_default'] = 'None'
+        #                     else:
+        #                         args['cpp_default'] = default
+        #                         args['py_default'] = default.replace('"', "'")
+        #                 else:
+        #                     if arg_flags & ArgFlags.OPTIONAL:
+        #                         args['cpp_type'] = 'std::optional<const char*>'
+        #                         args['py_type'] = 'str | None'
+        #                 out_args.append(FuncArg(**args))
+        #             case 'const char* const[]':
+        #                 assert default == 'nullptr'
+        #                 assert False
+        #                 logging.warning('unimplemented const char* const[]')
+        #                 out_args.append(FuncArg(arg_name, cpp_type='const char* const[]', py_type='list[str]'))
+        #             case ptrtype if ptrtype in {'ImPlotStyle*', 'ImPlotInputMap*'}:
+        #                 pname = { 'ImPlotStyle*': 'Style', 'ImPlotInputMap*': 'InputMap' }[ptrtype]
+        #                 args = { 'name': arg_name, 'cpp_type': ptrtype, 'py_type': pname }
+        #                 if default is not None:
+        #                     assert default == 'nullptr'
+        #                     args['cpp_default'] = 'nb::none()'
+        #                     args['py_default'] = 'None'
+        #                 out_args.append(FuncArg(**args))
+        #             case 'const ImVec2':
+        #                 if default is not None:
+        #                     out_args.append(FuncArg(arg_name, cpp_type='ImVec2', py_type='tuple[float, float]', cpp_default=default, py_default=default.replace('ImVec2', '')))
+        #                 else:
+        #                     out_args.append(FuncArg(arg_name, cpp_type='ImVec2', py_type='tuple[float, float]'))
+        #             case 'const ImPlotPoint':
+        #                 if default is not None:
+        #                     out_args.append(FuncArg(arg_name, cpp_type='ImPlotPoint', py_type='tuple[float, float]', cpp_default=default, py_default=default.replace('ImPlotPoint', '')))
+        #                 else:
+        #                     out_args.append(FuncArg(arg_name, cpp_type='ImPlotPoint', py_type='tuple[float, float]'))
+        #             case 'const ImVec4':
+        #                 if default is not None:
+        #                     py_default = default.replace('ImVec4', '')
+        #                     if py_default == '(0,0,0,-1)':
+        #                         py_default = 'AUTO_COL'
+        #                     out_args.append(FuncArg(arg_name, cpp_type='ImVec4', py_type='tuple[float, float, float, float]', cpp_default=default, py_default=py_default))
+        #                 else:
+        #                     out_args.append(FuncArg(arg_name, cpp_type='ImVec4', py_type='tuple[float, float, float, float]'))
+        #             case 'float':
+        #                 args = { 'name': arg_name, 'cpp_type': 'float', 'py_type': 'float' }
+        #                 if default is not None:
+        #                     args['cpp_default'] = default
+        #                     py_default = default.replace('.f', '')
+        #                     if py_default == '-1':
+        #                         py_default = 'AUTO'
+        #                     args['py_default'] = py_default
+        #                 out_args.append(FuncArg(**args))
+        #             case 'double':
+        #                 args = { 'name': arg_name, 'cpp_type': 'double', 'py_type': 'float' }
+        #                 if default is not None:
+        #                     args['cpp_default'] = default
+        #                     args['py_default'] = default.replace('.f', '')
+        #                 out_args.append(FuncArg(**args))
+        #             case 'int':
+        #                 args = { 'name': arg_name, 'cpp_type': 'int', 'py_type': 'int' }
+        #                 args['cpp_default'] = default
+        #                 args['py_default'] = default
+        #                 out_args.append(FuncArg(**args))
+        #             case 'ImU32':
+        #                 args = { 'name': arg_name, 'cpp_type': 'ImU32', 'py_type': 'int' }
+        #                 args['cpp_default'] = default
+        #                 args['py_default'] = default
+        #                 out_args.append(FuncArg(**args))
+        #             case 'ImTextureID':
+        #                 args = { 'name': arg_name, 'cpp_type': 'ImTextureID', 'py_type': 'int' }
+        #                 assert default is None
+        #                 out_args.append(FuncArg(**args))
+        #             case 'ImTextureRef':
+        #                 args = { 'name': arg_name, 'cpp_type': 'ImTextureRef', 'py_type': 'TextureRef' }
+        #                 assert default is None
+        #                 out_args.append(FuncArg(**args))
+        #             case 'bool':
+        #                 args = { 'name': arg_name, 'cpp_type': 'bool', 'py_type': 'bool' }
+        #                 args['cpp_default'] = default
+        #                 args['py_default'] = default.capitalize()
+        #                 out_args.append(FuncArg(**args))
+        #             case maybe_enum if f'{maybe_enum}_' in known_enums:
+        #                 enum_cpp_type = f'{maybe_enum}_'
+        #                 enum_py_type = known_enums[enum_cpp_type]
+        #                 enum_mod_prefix = ''
+        #                 if 'ImGui' in enum_cpp_type:
+        #                     enum_mod_prefix = 'slimgui_ext.imgui.'
+        #                 py_default = None
+        #                 cpp_default = None
+        #                 if default is not None:
+        #                     if default == '0':
+        #                         py_default = f'{enum_py_type}.NONE'
+        #                         cpp_default = f'{enum_cpp_type}None'
+        #                     elif default in ['-1', 'IMPLOT_AUTO']:
+        #                         py_default = 'AUTO'
+        #                         cpp_default = f'std::variant<{enum_cpp_type}, int>(IMPLOT_AUTO)'
+        #                         enum_cpp_type = f'std::variant<{enum_cpp_type}, int>'
+        #                     elif default.startswith(enum_cpp_type):
+        #                         py_default = gen_utils.translate_enum_name(default)
+        #                         cpp_default = default
+        #                     elif default == '1' and enum_cpp_type.startswith('ImGuiMouseButton'):
+        #                         py_default = f'{enum_py_type}.RIGHT'
+        #                         cpp_default = f'{enum_cpp_type}Right'
+        #                     else:
+        #                         assert False, 'unknown default'
+        #                 if py_default is not None:
+        #                     py_default = enum_mod_prefix + py_default
+        #                 out_args.append(FuncArg(arg_name, cpp_type=enum_cpp_type, py_type=enum_py_type, cpp_default=cpp_default, py_default=py_default))
+        #             case _:
+        #                 print(f"{f.cim_ov_name}: {a['type']}")
+        #                 assert False
 
             # Start a nanobind def
             self.write(f'm.def("{f.py_name}", [](')
@@ -430,8 +622,14 @@ class GenContext:
                     self.write(arg_str)
             if f.docstring is not None:
                 doc = inspect.cleandoc(f.docstring)
-                doc_str_lines = [f'\"{s.replace('"', '\\"')}\\n\"' for s in doc.split('\n')]
-                self.write(f', {'\n'.join(doc_str_lines)});\n')
+                #doc_str_lines = [f'\"{s.replace('"', '\\"')}\\n\"' for s in doc.split('\n')]
+                doc_str_lines = []
+                for s in doc.split("\n"):
+                    escaped = s.replace('"', r'\"')
+                    doc_str_lines.append(f"\"{escaped}\\n\"")
+
+                #self.write(f', {'\n'.join(doc_str_lines)});\n')
+                self.write(', ' + '\n'.join(doc_str_lines) + ');\n')
             else:
                 self.write(');\n')
 

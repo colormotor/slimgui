@@ -5,6 +5,7 @@ import tempfile
 import zipfile
 import os
 from contextlib import contextmanager
+from typing import Optional
 
 import urllib.request
 
@@ -21,7 +22,7 @@ def temp_downloaded_unzipped_dir(url):
         yield temp_dir
 
 
-def vendor_in(src_url, outdir, subdir: str | None = None):
+def vendor_in(src_url, outdir, subdir: Optional[str] = None):
     with temp_downloaded_unzipped_dir(src_url) as extracted_dir:
         subdirs = [d for d in os.listdir(extracted_dir) if os.path.isdir(os.path.join(extracted_dir, d))]
         if len(subdirs) != 1:
