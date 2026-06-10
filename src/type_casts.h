@@ -1,5 +1,8 @@
 
 #pragma once
+#ifndef NB_TYPING_TUPLE
+#define NB_TYPING_TUPLE "tuple"
+#endif
 
 template <typename Enum, typename Int = int>
 int variant_to_int(const std::variant<Enum, Int>& var) {
